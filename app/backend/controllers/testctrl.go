@@ -11,7 +11,7 @@ type TestCtrl struct {
 
 func (t *TestCtrl) IndexPage(w http.ResponseWriter, r *http.Request) {
 	http := t.api.HttpApi()
-	http.Respond().PortalView(w, 200, "index.html", map[string]any{"title": "Hello World"})
+	http.Respond().AdminView(w, r, "index.html", map[string]any{"title": "Hello World"})
 }
 
 func NewTestCtrl(g plugin.IPluginApi) *TestCtrl {
