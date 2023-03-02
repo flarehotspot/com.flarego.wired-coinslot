@@ -9,7 +9,8 @@ func SetAdminNavs(api plugin.IPluginApi) {
 	adminIndex := navigation.AdminNav{
 		IconPath: api.Utils().Resource("icon.png"),
 		Text:     "coinslots_list",
-    RouteName: "coinslots-index",
+    Translate: true,
+    RouteName: "coinslots_index",
 		Href:     "/",
 	}
 	api.NavApi().NewAdminNav(&adminIndex)

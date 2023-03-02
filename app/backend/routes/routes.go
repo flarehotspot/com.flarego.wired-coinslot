@@ -8,5 +8,5 @@ import (
 func SetRoutes(api plugin.IPluginApi) {
 	testctrl := controllers.NewTestCtrl(api)
   router := api.HttpApi().Router()
-  router.AdminRouter().Get("/index", testctrl.IndexPage, "coinslots-index")
+  router.AdminRouter().Get("/index", testctrl.IndexPage, "coinslots_index")
 }
