@@ -1,1 +1,7 @@
 <h1>Coinslots List</h1>
+
+<ul>
+  {% for id, c in coinslots %}
+  <li>{{ c.Alias }}</li>
+  {% endfor %}
+</ul>
