@@ -8,6 +8,6 @@ import (
 
 func SetRoutes(api plugin.IPluginApi, cfg *config.Config) {
 	ctrl := controllers.NewCoinslotsCtrl(api, cfg)
-  router := api.HttpApi().Router()
-  router.AdminRouter().Get("/index", ctrl.IndexPage, "coinslots_index")
+	router := api.HttpApi().Router()
+	router.AdminRouter().Get("/index", ctrl.IndexPage).Name("coinslots_index")
 }
