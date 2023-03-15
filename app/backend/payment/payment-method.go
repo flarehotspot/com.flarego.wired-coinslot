@@ -16,7 +16,7 @@ func (p *PaymentMethod) Name() string {
 	return "Coin Alias Here"
 }
 
-func (p *PaymentMethod) RequestPayment(w http.ResponseWriter, r *http.Request, items []*payments.PurchaseItem, amount *payments.UnitAmount, callbackUrl string) {
+func (p *PaymentMethod) RequestPayment(w http.ResponseWriter, r *http.Request, items []*payments.PaymentRequestItem, amount *payments.UnitAmount, callbackUrl string) {
   fmt.Fprintf(w, "Please insert coin")
 }
 
