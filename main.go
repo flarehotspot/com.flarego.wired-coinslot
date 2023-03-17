@@ -1,12 +1,20 @@
 //go:build !dev
+
 package main
 
-import "github.com/flarehotspot/sdk/interfaces/plugins"
+import (
+	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/wired-coinslot/app/backend/config"
+	"github.com/flarehotspot/wired-coinslot/app/backend/navs"
+	"github.com/flarehotspot/wired-coinslot/app/backend/payment"
+	"github.com/flarehotspot/wired-coinslot/app/backend/routes"
+)
 
-func Init(g plugins.PluginGlobals) *plugins.PluginParams {
-	return plugins.NewPluginParams(g)
+func main() {}
+
+func Init(api plugin.IPluginApi) {
+	config := config.NewConfig(api.ConfigApi())
+	routes.SetRoutes(api, config)
+	navs.SetAdminNavs(api)
+	payment.PaymentSetup(api)
 }
-
-// func Start() {
-// log.Println("Hello from payment.Init()...")
-// }
