@@ -1,5 +1,9 @@
-default:
-	go build -tags=dev -trimpath -buildmode=plugin -o plugin.so
+# prod: export CGO_ENABLED=0
+# prod: export GOOS=linux
+# prod: export GOARCH=amd64
 
-prod:
-	go build -buildmode=plugin -o plugin.so -tags=prod ./main.go
+# default:
+	# go build -tags=dev -trimpath -buildmode=plugin -o plugin.so
+
+plugin:
+	go build -buildmode=plugin -o plugin.so ./main.go
