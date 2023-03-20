@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/flarehotspot/sdk/api/config"
-	"github.com/flarehotspot/sdk/goutils/yaml-3"
+	"github.com/flarehotspot/sdk/libs/yaml-3"
 )
 
 type WiredCoinslotDef struct {
