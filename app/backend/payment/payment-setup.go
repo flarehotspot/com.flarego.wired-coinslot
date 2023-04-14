@@ -15,5 +15,5 @@ func PaymentSetup(api plugin.IPluginApi) {
     RouteName: names.RouteCoinslotsIndex,
   }
 	paymentApi.AdminSettings(adminNav)
-	paymentApi.NewPaymentMethod(wiredCoinslot)
+	paymentApi.NewPaymentsPlugin(wiredCoinslot)
 }
