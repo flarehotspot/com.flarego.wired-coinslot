@@ -6,6 +6,6 @@ import (
 
 func PaymentSetup(api plugin.IPluginApi) {
 	paymentApi := api.PaymentsApi()
-	wiredCoinslot := NewPaymentMethod(api.Utils())
+	wiredCoinslot := NewPaymentMethod(api)
 	paymentApi.NewPaymentsPlugin(wiredCoinslot)
 }
