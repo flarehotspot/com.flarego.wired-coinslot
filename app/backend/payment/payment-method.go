@@ -12,12 +12,12 @@ type PaymentMethod struct {
 	utl utils.IUtils
 }
 
-func (p *PaymentMethod) Name() string {
+func (self *PaymentMethod) Name() string {
 	return "Coin Alias Here"
 }
 
-func (p *PaymentMethod) RequestPayment(w http.ResponseWriter, r *http.Request, items []*payments.PaymentRequestItem, amount *payments.UnitAmount, callbackUrl string) {
-  fmt.Fprintf(w, "Please insert coin")
+func (self *PaymentMethod) RequestPayment(w http.ResponseWriter, r *http.Request, params *payments.PaymentRequestParams) {
+	fmt.Fprintf(w, "Please insert coin")
 }
 
 func NewPaymentMethod(utl utils.IUtils) payments.IPaymentMethod {
