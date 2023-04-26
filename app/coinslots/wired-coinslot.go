@@ -6,17 +6,15 @@ import (
 	"os/exec"
 
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/wired-coinslot/app/backend/config"
 )
 
 type WiredCoinslot struct {
 	api  plugin.IPluginApi
-	def  *config.WiredCoinslotDef
 	proc *os.Process
 }
 
 func (wc *WiredCoinslot) Init() error {
-	cmd := exec.Command("echo", "Init coinslot: "+wc.def.Alias)
+	cmd := exec.Command("echo", "Init coinslot: ")
 	if err := cmd.Start(); err != nil {
 		log.Println(err)
 		return err
