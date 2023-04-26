@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/flarehotspot/sdk/api/db/models"
+	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
 	// uuid "github.com/flarehotspot/sdk/libs/go.uuid"
