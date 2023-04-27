@@ -15,7 +15,7 @@ type WiredCoinslot struct {
 	coinBouncetime    uint
 
 	billPin           *uint
-	billInhibitPin    *uint
+	billInhibitPin    uint
 	billRelayActive   bool
 	billRelayDelaySec uint
 	billBouncetime    uint
