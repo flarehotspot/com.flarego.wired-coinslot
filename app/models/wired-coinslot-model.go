@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"database/sql"
-
 	"github.com/flarehotspot/sdk/api/plugin"
 )
 
@@ -60,9 +59,9 @@ func (self *WiredCoinslotModel) Create(
 	return &c, nil
 }
 
-func (self *WiredCoinslotModel) All(ctx context.Context) ([]*WiredCoinslot, error) {
+func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 	stmt := self.allStmt
-	rows, err := stmt.QueryContext(ctx)
+	rows, err := stmt.Query()
 	if err != nil {
 		return nil, err
 	}
