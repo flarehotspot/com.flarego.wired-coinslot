@@ -1,51 +1,98 @@
 package payment
 
 import (
+	"context"
 	"log"
+	"net/http"
+	"strconv"
+	"sync"
 
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/api/web/router"
 	"github.com/flarehotspot/wired-coinslot/app/models"
-	"github.com/flarehotspot/wired-coinslot/app/routes/names"
+	"github.com/gorilla/mux"
 )
 
 type PaymentProvider struct {
-	api   plugin.IPluginApi
-	model *models.WiredCoinslotModel
-	name  string
-	route router.PluginRouteName
+	mu      sync.RWMutex
+	name    string
+	api     plugin.IPluginApi
+	model   *models.WiredCoinslotModel
+	options []*PaymentOption
 }
 
 func (self *PaymentProvider) Name() string {
 	return self.name
 }
 
-func (self *PaymentProvider) AdminRoute() router.PluginRouteName {
-	return self.route
+func (self *PaymentProvider) PaymentOpts() []payments.IPaymentOpt {
+	opts := []payments.IPaymentOpt{}
+	for _, opt := range self.options {
+		opts = append(opts, opt)
+	}
+	return opts
 }
 
-func (self *PaymentProvider) PaymentOpts() ([]payments.IPaymentOpt, error) {
+func (self *PaymentProvider) AddPaymentOpt(opt *PaymentOption) {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+	self.options = append(self.options, opt)
+}
+
+func (self *PaymentProvider) LoadOpts() {
 	coinslots, err := self.model.All()
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return
 	}
-
-	methods := []payments.IPaymentOpt{}
 	for _, c := range coinslots {
-		wiredCoinslot := NewPaymentOpt(self.api, c)
-		methods = append(methods, wiredCoinslot)
+		opt := NewPaymentOpt(self.api, self, c)
+		self.AddPaymentOpt(opt)
 	}
-
-	return methods, nil
 }
 
-func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) payments.IPaymentProvider {
-	return &PaymentProvider{
-		api:   api,
-		model: mdl,
-		name:  "Wired Coinslots",
-		route: names.RouteCoinslotsIndex,
+func (self *PaymentProvider) FindOpt(name string) (opt *PaymentOption, ok bool) {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
+	for _, opt := range self.options {
+		if opt.Name() == name {
+			return opt, true
+		}
 	}
+	return nil, false
+}
+
+func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	name := params["name"]
+	f := params["amount"]
+	amount, err := strconv.ParseFloat(f, 32)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	opt, ok := self.FindOpt(name)
+	if !ok {
+		http.Error(w, "Invalid payment option: "+name, http.StatusInternalServerError)
+		return
+	}
+
+	opt.PaymentReceived(context.Background(), amount)
+  log.Printf("Payment received: %f", amount)
+	w.WriteHeader(http.StatusOK)
+}
+
+func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
+	provider := PaymentProvider{
+		name:    "Wired Coinslots",
+		api:     api,
+		model:   mdl,
+		options: []*PaymentOption{},
+	}
+
+	provider.LoadOpts()
+
+	return &provider
 }

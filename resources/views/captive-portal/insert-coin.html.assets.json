@@ -1,0 +1,7 @@
+{
+  "scripts": [
+    "../../assets/vendor/jquery/jquery-1.12.4.min.js",
+    "../../assets/js/insert-coin.js"
+  ],
+  "styles": []
+}

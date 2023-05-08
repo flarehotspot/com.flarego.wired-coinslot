@@ -8,7 +8,8 @@ import (
 )
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
-	ctrl := controllers.NewCoinslotsCtrl(api, mdl)
+	coinctrl := controllers.NewCoinslotsCtrl(api, mdl)
 	router := api.HttpApi().Router()
-	router.AdminRouter().Get("/index", ctrl.IndexPage).Name(names.RouteCoinslotsIndex)
+
+	router.AdminRouter().Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)
 }
