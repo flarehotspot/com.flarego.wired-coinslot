@@ -21,7 +21,7 @@ type PaymentOption struct {
 	api      plugin.IPluginApi
 	provider *PaymentProvider
 	coinslot *mdls.WiredCoinslot
-	paying   devices.IClientDevice
+	client   devices.IClientDevice
 	purchase models.IPurchase
 }
 
@@ -29,11 +29,12 @@ func (self *PaymentOption) Name() string {
 	return self.coinslot.Name()
 }
 
-func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, clnt devices.IClientDevice, prch models.IPurchase) {
+func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client devices.IClientDevice, purchase models.IPurchase) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
-	if self.paying != nil && self.paying.Device().Id() != clnt.Device().Id() {
-		err := prch.Cancel(r.Context())
+
+	if self.client != nil && self.client.Device().Id() != client.Device().Id() {
+		err := purchase.Cancel(r.Context())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -43,39 +44,36 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	self.paying = clnt
-	self.purchase = prch
+	self.client = client
+	self.purchase = purchase
 	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", nil)
 }
 
 func (self *PaymentOption) PaymentReceived(ctx context.Context, amount float64) {
-	tx, err := self.api.Db().BeginTx(ctx, nil)
+	err := self.purchase.IncPayment(ctx, amount, nil, nil)
+	if err != nil {
+		log.Printf("Error while updating payment: %+v\n", err)
+		return
+	}
+	data := map[string]any{"amount": amount}
+	self.client.Emit("payment:received", data)
+}
+
+func (self *PaymentOption) UseWalletBal(ctx context.Context, bal float64) error {
+	payment, err := self.purchase.Payment(ctx)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
-	defer tx.Rollback()
-
-	payment, err := self.purchase.PaymentTx(tx, ctx)
+	err = payment.Update(ctx, payment.Amount(), &bal, payment.WalletTxId())
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 
-	newAmount := payment.Amount() + amount
-	err = payment.UpdateTx(tx, ctx, newAmount, nil, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return
-	}
-
-	data := pmtEvt{Amount: amount}
-	self.paying.Emit("payment:received", data)
+	data := map[string]any{"amount": bal}
+	self.client.Emit("payment:received", data)
+	return nil
 }
 
 func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {
@@ -83,6 +81,6 @@ func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredC
 		api:      api,
 		provider: prvdr,
 		coinslot: c,
-		paying:   nil,
+		client:   nil,
 	}
 }

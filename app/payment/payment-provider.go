@@ -1,7 +1,6 @@
 package payment
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"strconv"
@@ -79,8 +78,30 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	opt.PaymentReceived(context.Background(), amount)
+	opt.PaymentReceived(r.Context(), amount)
   log.Printf("Payment received: %f", amount)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	name := params["name"]
+	f := params["amount"]
+	amount, err := strconv.ParseFloat(f, 32)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	opt, ok := self.FindOpt(name)
+	if !ok {
+		http.Error(w, "Invalid payment option: "+name, http.StatusInternalServerError)
+		return
+	}
+
+	opt.UseWalletBal(r.Context(), amount)
+  log.Printf("Use wallet: %f", amount)
 	w.WriteHeader(http.StatusOK)
 }
 

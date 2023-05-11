@@ -12,4 +12,5 @@ func PaymentSetup(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 
   router := api.HttpApi().Router()
 	router.PluginRouter().Get("/payment/received/{name}/{amount}", provider.PaymentReceived).Name("payment:received")
+	router.PluginRouter().Get("/payment/wallet/{name}/{amount}", provider.UseWalletBal).Name("payment:wallet")
 }
