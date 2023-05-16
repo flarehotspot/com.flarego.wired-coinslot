@@ -11,7 +11,6 @@ import (
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/api/web/contexts"
 	"github.com/flarehotspot/wired-coinslot/app/models"
-	"github.com/gorilla/mux"
 )
 
 type PaymentProvider struct {
