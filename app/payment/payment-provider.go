@@ -123,6 +123,25 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
+	clntSym := r.Context().Value(contexts.ClientCtxKey)
+	clnt, ok := clntSym.(devices.IClientDevice)
+	if !ok {
+		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		http.Error(w, errmsg, http.StatusInternalServerError)
+		return
+	}
+
+	opt, ok := self.FindOpt(clnt)
+	if !ok {
+		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		http.Error(w, errmsg, http.StatusInternalServerError)
+		return
+	}
+
+	opt.Done(w, r)
+}
+
 func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
 	provider := PaymentProvider{
 		name:    "Wired Coinslots",

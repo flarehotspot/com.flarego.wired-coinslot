@@ -97,48 +97,13 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	}
 	defer tx.Rollback()
 
-	payment, err := self.purchase.PaymentTx(tx, ctx)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	err = payment.UseWalletBalTx(tx, ctx, debit)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	wallet, err := self.client.Device().WalletTx(tx, ctx)
+	stat, err := self.purchase.StatTx(tx, ctx)
 	if err != nil {
 		return err
-	}
-
-	availBal, err := wallet.AvailableBalTx(tx, ctx)
-	if err != nil {
-		return err
-	}
-
-	var dbt float64
-	if payment.WalletDebit() != nil {
-		dbt = *payment.WalletDebit()
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	resp := pmtEvt{
-		PaymentAmount:  payment.Amount(),
-		WalletDebit:    dbt,
-		PaymentTotal:   payment.TotalAmount(),
-		WalletBal:      wallet.Balance(),
-		WalletAvailBal: availBal,
 	}
 
 	w.Header().Set("Content-Type", "applicatoin/json")
-	json, err := json.Marshal(resp)
+	json, err := json.Marshal(stat)
 	if err != nil {
 		return err
 	}
@@ -146,6 +111,10 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	w.Write(json)
 
 	return nil
+}
+
+func (self *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
+	self.api.PaymentsApi().ExecCallback(w, r, self.purchase)
 }
 
 func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {

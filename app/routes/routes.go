@@ -11,7 +11,7 @@ import (
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 	coinctrl := controllers.NewCoinslotsCtrl(api, mdl)
-  adminRtr := api.HttpApi().Router().AdminRouter()
+	adminRtr := api.HttpApi().Router().AdminRouter()
 	adminRtr.Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)
 
 	paymentApi := api.PaymentsApi()
@@ -19,10 +19,11 @@ func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 	paymentApi.NewPaymentProvider(provider)
 	deviceMw := api.HttpApi().Middlewares().Device()
 
-  plugRtr := api.HttpApi().Router().PluginRouter()
+	plugRtr := api.HttpApi().Router().PluginRouter()
 	plugRtr.Group("/payment", func(subrouter router.IRouter) {
 		subrouter.Use(deviceMw)
 		subrouter.Get("/received", provider.PaymentReceived).Name("payment:received")
 		subrouter.Get("/wallet", provider.UseWalletBal).Name("use:wallet")
+		subrouter.Get("/done", provider.Done).Name("payment:done")
 	})
 }

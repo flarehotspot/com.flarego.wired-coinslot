@@ -26,6 +26,9 @@
 
 <h2>Total Amount: <span id="total-amount">{{ PaymentTotal }}</span></h2>
 
+<hr>
+<a href='{{ helpers.UrlForRoute("payment:done") }}'>Done Payment</a>
+
 <script>
   window.USE_WALLET_URL = '{{ helpers.UrlForRoute("use:wallet") }}';
   window.PaymentAmount = {{ PaymentAmount }};
