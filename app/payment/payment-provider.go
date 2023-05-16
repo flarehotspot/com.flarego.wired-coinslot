@@ -127,7 +127,7 @@ func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
 	clntSym := r.Context().Value(contexts.ClientCtxKey)
 	clnt, ok := clntSym.(devices.IClientDevice)
 	if !ok {
-		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		errmsg := "Cannot determine client device"
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}
