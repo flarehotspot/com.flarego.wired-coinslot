@@ -2,14 +2,27 @@ package routes
 
 import (
 	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/sdk/api/web/router"
 	"github.com/flarehotspot/wired-coinslot/app/controllers"
 	"github.com/flarehotspot/wired-coinslot/app/models"
+	"github.com/flarehotspot/wired-coinslot/app/payment"
 	"github.com/flarehotspot/wired-coinslot/app/routes/names"
 )
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 	coinctrl := controllers.NewCoinslotsCtrl(api, mdl)
-	router := api.HttpApi().Router()
+  adminRtr := api.HttpApi().Router().AdminRouter()
+	adminRtr.Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)
 
-	router.AdminRouter().Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)
+	paymentApi := api.PaymentsApi()
+	provider := payment.NewPaymentProvider(api, mdl)
+	paymentApi.NewPaymentProvider(provider)
+	deviceMw := api.HttpApi().Middlewares().Device()
+
+  plugRtr := api.HttpApi().Router().PluginRouter()
+	plugRtr.Group("/payment", func(subrouter router.IRouter) {
+		subrouter.Use(deviceMw)
+		subrouter.Get("/received", provider.PaymentReceived).Name("payment:received")
+		subrouter.Get("/wallet", provider.UseWalletBal).Name("use:wallet")
+	})
 }

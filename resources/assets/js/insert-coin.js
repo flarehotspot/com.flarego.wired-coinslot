@@ -2,10 +2,8 @@ $(document).ready(function () {
   var evt = new EventSource("/sse/events");
   var checkbox = $("#use-wallet-bal-checkbox");
   var walletBal = $("#wallet-bal");
-
-  function init() {
-    $.ajax();
-  }
+  var totalAmount = $("#total-amount");
+  var url = window.USE_WALLET_URL;
 
   function procData(data) {
     if (data.wallet_debit > 0) {
@@ -14,7 +12,8 @@ $(document).ready(function () {
       checkbox.removeAttr("checked");
     }
 
-    walletBal.text(data.wallet_avail_bal + "/" + data.wallet_bal);
+    walletBal.text(parseFloat(data.wallet_avail_bal).toFixed(2) + "/" + parseFloat(data.wallet_bal).toFixed(2));
+    totalAmount.text(parseFloat(data.total_amount).toFixed(2));
   }
 
   evt.addEventListener("payment:received", function (res) {
@@ -28,21 +27,14 @@ $(document).ready(function () {
 
   checkbox.change(function () {
     var checked = this.checked;
-    var url = window.USE_WALLET_URL;
-    var amount = checked ? window.WALLET_BAL;
+    var amount = checked ? window.WalletBal : 0;
 
     $.ajax({
       method: "GET",
-      url: url,
+      url: url + "?amount=" + amount,
       success: function (data) {
         console.log(data);
-        walletBal.text(data.wallet_bal);
-
-        if (checked) {
-          $(this).attr("checked", "checked");
-        } else {
-          $(this).removeAttr("checked");
-        }
+        procData(data);
       },
       fail: function (err) {
         console.error(err);

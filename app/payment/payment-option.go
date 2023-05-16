@@ -58,14 +58,19 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	self.client = client
 	self.purchase = purchase
 
-	wallet, err := self.client.Device().Wallet(r.Context())
+	stat, err := purchase.Stat(r.Context())
 	if err != nil {
 		self.ErrResp(w, err)
 		return
 	}
 
 	data := map[string]interface{}{
-		"walletBal": fmt.Sprintf("%0.2f", wallet.Balance()),
+		"PaymentAmount": fmt.Sprintf("%0.2f", stat.PaymentAmount),
+		"PaymentTotal":  fmt.Sprintf("%0.2f", stat.PaymentTotal),
+		"WalletDebit":   fmt.Sprintf("%0.2f", stat.WalletDebit),
+		"WalletBal":     fmt.Sprintf("%0.2f", stat.WalletBal),
+		"WalletAvailBal":     fmt.Sprintf("%0.2f", stat.WalletAvailBal),
+    "UseWallet": stat.WalletDebit > 0,
 	}
 
 	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
