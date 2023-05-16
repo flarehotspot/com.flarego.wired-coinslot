@@ -6,8 +6,10 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/flarehotspot/sdk/api/devices"
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/sdk/api/web/contexts"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 	"github.com/gorilla/mux"
 )
@@ -50,21 +52,21 @@ func (self *PaymentProvider) LoadOpts() {
 	}
 }
 
-func (self *PaymentProvider) FindOpt(name string) (opt *PaymentOption, ok bool) {
+func (self *PaymentProvider) FindOpt(clnt devices.IClientDevice) (opt *PaymentOption, ok bool) {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
+
 	for _, opt := range self.options {
-		if opt.Name() == name {
+		if opt.client.Device().Id() == clnt.Device().Id() {
 			return opt, true
 		}
 	}
+
 	return nil, false
 }
 
 func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	name := params["name"]
-	f := params["amount"]
+	f := r.URL.Query().Get("amount")
 	amount, err := strconv.ParseFloat(f, 32)
 	if err != nil {
 		log.Println(err)
@@ -72,21 +74,28 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	opt, ok := self.FindOpt(name)
+	clntSym := r.Context().Value(contexts.ClientCtxKey)
+	clnt, ok := clntSym.(devices.IClientDevice)
 	if !ok {
-		http.Error(w, "Invalid payment option: "+name, http.StatusInternalServerError)
+		log.Println("Could not determine client device.")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	opt, ok := self.FindOpt(clnt)
+	if !ok {
+		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}
 
 	opt.PaymentReceived(r.Context(), amount)
-  log.Printf("Payment received: %f", amount)
+	log.Printf("Payment received: %f", amount)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	name := params["name"]
-	f := params["amount"]
+	f := r.URL.Query().Get("amount")
 	amount, err := strconv.ParseFloat(f, 32)
 	if err != nil {
 		log.Println(err)
@@ -94,15 +103,25 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	opt, ok := self.FindOpt(name)
+	clntSym := r.Context().Value(contexts.ClientCtxKey)
+	clnt, ok := clntSym.(devices.IClientDevice)
 	if !ok {
-		http.Error(w, "Invalid payment option: "+name, http.StatusInternalServerError)
+		log.Println("Could not determine client device.")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	opt.UseWalletBal(r.Context(), amount)
-  log.Printf("Use wallet: %f", amount)
-	w.WriteHeader(http.StatusOK)
+	opt, ok := self.FindOpt(clnt)
+	if !ok {
+		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		http.Error(w, errmsg, http.StatusInternalServerError)
+		return
+	}
+
+	err = opt.UseWalletBal(w, r, amount)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {

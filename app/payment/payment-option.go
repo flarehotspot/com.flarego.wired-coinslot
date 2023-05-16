@@ -2,6 +2,8 @@ package payment
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -13,7 +15,11 @@ import (
 )
 
 type pmtEvt struct {
-	Amount float64 `json:"amount"`
+	PaymentAmount  float64 `json:"amount"`
+	WalletDebit    float64 `json:"wallet_debit"`
+	TotalAmount    float64 `json:"total_amount"`
+	WalletBal      float64 `json:"wallet_bal"`
+	WalletAvailBal float64 `json:"wallet_avail_bal"`
 }
 
 type PaymentOption struct {
@@ -29,6 +35,11 @@ func (self *PaymentOption) Name() string {
 	return self.coinslot.Name()
 }
 
+func (self *PaymentOption) ErrResp(w http.ResponseWriter, err error) {
+	log.Println(err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
 func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client devices.IClientDevice, purchase models.IPurchase) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
@@ -36,7 +47,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	if self.client != nil && self.client.Device().Id() != client.Device().Id() {
 		err := purchase.Cancel(r.Context())
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			self.ErrResp(w, err)
 			return
 		}
 		self.api.HttpApi().Respond().SetFlashMsg(w, "error", "Somebody is still paying.")
@@ -46,7 +57,18 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 
 	self.client = client
 	self.purchase = purchase
-	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", nil)
+
+	wallet, err := self.client.Device().Wallet(r.Context())
+	if err != nil {
+		self.ErrResp(w, err)
+		return
+	}
+
+	data := map[string]interface{}{
+		"walletBal": fmt.Sprintf("%0.2f", wallet.Balance()),
+	}
+
+	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
 }
 
 func (self *PaymentOption) PaymentReceived(ctx context.Context, amount float64) {
@@ -59,20 +81,65 @@ func (self *PaymentOption) PaymentReceived(ctx context.Context, amount float64) 
 	self.client.Emit("payment:received", data)
 }
 
-func (self *PaymentOption) UseWalletBal(ctx context.Context, bal float64) error {
-	payment, err := self.purchase.Payment(ctx)
+func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, debit float64) error {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
+	ctx := r.Context()
+	tx, err := self.api.Db().BeginTx(ctx, nil)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
-	err = payment.Update(ctx, payment.Amount(), &bal, payment.WalletTxId())
+	defer tx.Rollback()
+
+	payment, err := self.purchase.PaymentTx(tx, ctx)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 
-	data := map[string]any{"amount": bal}
-	self.client.Emit("payment:received", data)
+	err = payment.UseWalletBalTx(tx, ctx, debit)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	wallet, err := self.client.Device().WalletTx(tx, ctx)
+	if err != nil {
+		return err
+	}
+
+	availBal, err := wallet.AvailableBalTx(tx, ctx)
+	if err != nil {
+		return err
+	}
+
+	var dbt float64
+	if payment.WalletDebit() != nil {
+		dbt = *payment.WalletDebit()
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	resp := pmtEvt{
+		PaymentAmount:  payment.Amount(),
+		WalletDebit:    dbt,
+		TotalAmount:    payment.TotalAmount(),
+		WalletBal:      wallet.Balance(),
+		WalletAvailBal: availBal,
+	}
+
+	w.Header().Set("Content-Type", "applicatoin/json")
+	json, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+
+	w.Write(json)
+
 	return nil
 }
 
