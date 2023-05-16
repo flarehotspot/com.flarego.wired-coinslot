@@ -6,14 +6,14 @@ $(document).ready(function () {
   var url = window.USE_WALLET_URL;
 
   function procData(data) {
-    if (data.wallet_debit > 0) {
+    if (data.WalletDebit > 0) {
       checkbox.attr("checked", "checked");
     } else {
       checkbox.removeAttr("checked");
     }
 
-    walletBal.text(parseFloat(data.wallet_avail_bal).toFixed(2) + "/" + parseFloat(data.wallet_bal).toFixed(2));
-    totalAmount.text(parseFloat(data.total_amount).toFixed(2));
+    walletBal.text(parseFloat(data.WalletAvailBal).toFixed(2) + "/" + parseFloat(data.WalletBal).toFixed(2));
+    totalAmount.text(parseFloat(data.PaymentTotal).toFixed(2));
   }
 
   evt.addEventListener("payment:received", function (res) {

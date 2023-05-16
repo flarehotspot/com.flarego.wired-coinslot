@@ -15,11 +15,11 @@ import (
 )
 
 type pmtEvt struct {
-	PaymentAmount  float64 `json:"amount"`
-	WalletDebit    float64 `json:"wallet_debit"`
-	TotalAmount    float64 `json:"total_amount"`
-	WalletBal      float64 `json:"wallet_bal"`
-	WalletAvailBal float64 `json:"wallet_avail_bal"`
+	PaymentAmount  float64
+	PaymentTotal   float64
+	WalletDebit    float64
+	WalletBal      float64
+	WalletAvailBal float64
 }
 
 type PaymentOption struct {
@@ -65,12 +65,12 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	data := map[string]interface{}{
-		"PaymentAmount": fmt.Sprintf("%0.2f", stat.PaymentAmount),
-		"PaymentTotal":  fmt.Sprintf("%0.2f", stat.PaymentTotal),
-		"WalletDebit":   fmt.Sprintf("%0.2f", stat.WalletDebit),
-		"WalletBal":     fmt.Sprintf("%0.2f", stat.WalletBal),
-		"WalletAvailBal":     fmt.Sprintf("%0.2f", stat.WalletAvailBal),
-    "UseWallet": stat.WalletDebit > 0,
+		"PaymentAmount":  fmt.Sprintf("%0.2f", stat.PaymentAmount),
+		"PaymentTotal":   fmt.Sprintf("%0.2f", stat.PaymentTotal),
+		"WalletDebit":    fmt.Sprintf("%0.2f", stat.WalletDebit),
+		"WalletBal":      fmt.Sprintf("%0.2f", stat.WalletBal),
+		"WalletAvailBal": fmt.Sprintf("%0.2f", stat.WalletAvailBal),
+		"UseWallet":      stat.WalletDebit > 0,
 	}
 
 	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
@@ -132,7 +132,7 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	resp := pmtEvt{
 		PaymentAmount:  payment.Amount(),
 		WalletDebit:    dbt,
-		TotalAmount:    payment.TotalAmount(),
+		PaymentTotal:   payment.TotalAmount(),
 		WalletBal:      wallet.Balance(),
 		WalletAvailBal: availBal,
 	}
