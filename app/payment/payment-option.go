@@ -97,7 +97,20 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	}
 	defer tx.Rollback()
 
+	payment, err := self.purchase.PaymentTx(tx, ctx)
+
+	err = payment.UseWalletBalTx(tx, ctx, debit)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	stat, err := self.purchase.StatTx(tx, ctx)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
