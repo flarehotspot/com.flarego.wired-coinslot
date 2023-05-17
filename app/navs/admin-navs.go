@@ -2,8 +2,8 @@ package navs
 
 import (
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/api/web/navigation"
-	"github.com/flarehotspot/sdk/api/web/navigation/navgen"
+	"github.com/flarehotspot/sdk/api/http/navigation"
+	"github.com/flarehotspot/sdk/api/http/navigation/navgen"
 	"github.com/flarehotspot/wired-coinslot/app/routes/names"
 )
 

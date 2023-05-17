@@ -9,7 +9,7 @@ import (
 	"github.com/flarehotspot/sdk/api/devices"
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/api/web/contexts"
+	"github.com/flarehotspot/sdk/api/http/contexts"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 )
 

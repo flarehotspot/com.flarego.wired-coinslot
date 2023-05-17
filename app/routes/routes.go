@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/api/web/router"
+	"github.com/flarehotspot/sdk/api/http/router"
 	"github.com/flarehotspot/wired-coinslot/app/controllers"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 	"github.com/flarehotspot/wired-coinslot/app/payment"
