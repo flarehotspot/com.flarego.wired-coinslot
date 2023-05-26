@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/flarehotspot/sdk/api/devices"
+	"github.com/flarehotspot/sdk/api/connmgr"
+	"github.com/flarehotspot/sdk/api/http/contexts"
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/api/http/contexts"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -51,7 +51,7 @@ func (self *PaymentProvider) LoadOpts() {
 	}
 }
 
-func (self *PaymentProvider) FindOpt(clnt devices.IClientDevice) (opt *PaymentOption, ok bool) {
+func (self *PaymentProvider) FindOpt(clnt connmgr.IClientDevice) (opt *PaymentOption, ok bool) {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
 
@@ -74,7 +74,7 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 	}
 
 	clntSym := r.Context().Value(contexts.ClientCtxKey)
-	clnt, ok := clntSym.(devices.IClientDevice)
+	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -103,7 +103,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 	}
 
 	clntSym := r.Context().Value(contexts.ClientCtxKey)
-	clnt, ok := clntSym.(devices.IClientDevice)
+	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -125,7 +125,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 
 func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
 	clntSym := r.Context().Value(contexts.ClientCtxKey)
-	clnt, ok := clntSym.(devices.IClientDevice)
+	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		errmsg := "Cannot determine client device"
 		http.Error(w, errmsg, http.StatusInternalServerError)

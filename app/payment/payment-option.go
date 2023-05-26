@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/flarehotspot/sdk/api/devices"
+	"github.com/flarehotspot/sdk/api/connmgr"
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
 	mdls "github.com/flarehotspot/wired-coinslot/app/models"
@@ -27,7 +27,7 @@ type PaymentOption struct {
 	api      plugin.IPluginApi
 	provider *PaymentProvider
 	coinslot *mdls.WiredCoinslot
-	client   devices.IClientDevice
+	client   connmgr.IClientDevice
 	purchase models.IPurchase
 }
 
@@ -40,7 +40,7 @@ func (self *PaymentOption) ErrResp(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client devices.IClientDevice, purchase models.IPurchase) {
+func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client connmgr.IClientDevice, purchase models.IPurchase) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
