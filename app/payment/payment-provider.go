@@ -56,7 +56,7 @@ func (self *PaymentProvider) FindOpt(clnt connmgr.IClientDevice) (opt *PaymentOp
 	defer self.mu.RUnlock()
 
 	for _, opt := range self.options {
-		if opt.client.Device().Id() == clnt.Device().Id() {
+		if opt.DeviceId() == clnt.Device().Id() {
 			return opt, true
 		}
 	}
@@ -88,7 +88,7 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	opt.PaymentReceived(r.Context(), amount)
+	opt.PaymentReceived(r.Context(), clnt, amount)
 	log.Printf("Payment received: %f", amount)
 	w.WriteHeader(http.StatusOK)
 }

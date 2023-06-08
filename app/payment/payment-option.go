@@ -24,15 +24,25 @@ type pmtEvt struct {
 }
 
 type PaymentOption struct {
-	mu       sync.RWMutex
-	api      plugin.IPluginApi
-	provider *PaymentProvider
-	coinslot *mdls.WiredCoinslot
-	client   connmgr.IClientDevice
-	purchase models.IPurchase
+	mu         sync.RWMutex
+	api        plugin.IPluginApi
+	provider   *PaymentProvider
+	coinslot   *mdls.WiredCoinslot
+	deviceId   *int64
+	purchaseId *int64
+}
+
+func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {
+	return &PaymentOption{
+		api:      api,
+		provider: prvdr,
+		coinslot: c,
+	}
 }
 
 func (self *PaymentOption) Name() string {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
 	return self.coinslot.Name()
 }
 
@@ -41,11 +51,17 @@ func (self *PaymentOption) ErrResp(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
+func (self *PaymentOption) DeviceId() int64 {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
+	return *self.deviceId
+}
+
 func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client connmgr.IClientDevice, purchase models.IPurchase) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	if self.client != nil && self.client.Device().Id() != client.Device().Id() {
+	if self.deviceId != nil && *self.deviceId != client.Device().Id() {
 		err := purchase.Cancel(r.Context())
 		if err != nil {
 			self.ErrResp(w, err)
@@ -56,8 +72,10 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	self.client = client
-	self.purchase = purchase
+	clntId := client.Device().Id()
+	purId := purchase.Id()
+	self.deviceId = &clntId
+	self.purchaseId = &purId
 
 	stat, err := purchase.Stat(r.Context())
 	if err != nil {
@@ -66,7 +84,6 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	data := map[string]interface{}{
-		"PaymentAmount":  fmt.Sprintf("%0.2f", stat.PaymentAmount),
 		"PaymentTotal":   fmt.Sprintf("%0.2f", stat.PaymentTotal),
 		"WalletDebit":    fmt.Sprintf("%0.2f", stat.WalletDebit),
 		"WalletBal":      fmt.Sprintf("%0.2f", stat.WalletBal),
@@ -77,14 +94,24 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
 }
 
-func (self *PaymentOption) PaymentReceived(ctx context.Context, amount float64) {
-	err := self.purchase.IncPayment(ctx, amount, nil, nil)
+func (self *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.IClientDevice, amount float64) {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
+
+	purchase, err := self.api.Models().Purchase().Find(ctx, *self.purchaseId)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	desc := ""
+	_, err = purchase.AddPayment(ctx, amount, desc)
 	if err != nil {
 		log.Printf("Error while updating payment: %+v\n", err)
 		return
 	}
 	data := map[string]any{"amount": amount}
-	self.client.Emit("payment:received", data)
+	clnt.Emit("payment:received", data)
 }
 
 func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, debit float64) error {
@@ -98,15 +125,17 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	}
 	defer tx.Rollback()
 
-	payment, err := self.purchase.PaymentTx(tx, ctx)
-
-	err = payment.UseWalletBalTx(tx, ctx, debit)
+	p, err := self.api.Models().Purchase().FindTx(tx, ctx, *self.purchaseId)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
-	stat, err := self.purchase.StatTx(tx, ctx)
+	err = p.UpdateTx(tx, ctx, debit, p.WalletTxId(), p.CancelledAt(), p.ConfirmedAt(), nil)
+	if err != nil {
+		return err
+	}
+
+	stat, err := p.StatTx(tx, ctx)
 	if err != nil {
 		return err
 	}
@@ -128,14 +157,13 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 }
 
 func (self *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
-	self.api.PaymentsApi().ExecCallback(w, r, self.purchase)
-}
+	self.mu.RLock()
+	defer self.mu.RUnlock()
 
-func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {
-	return &PaymentOption{
-		api:      api,
-		provider: prvdr,
-		coinslot: c,
-		client:   nil,
+	p, err := self.api.Models().Purchase().Find(r.Context(), *self.purchaseId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	self.api.PaymentsApi().ExecCallback(w, r, p)
 }
