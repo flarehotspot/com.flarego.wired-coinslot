@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	"github.com/flarehotspot/sdk/api/connmgr"
-	"github.com/flarehotspot/sdk/api/http/flash"
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/sdk/utils/constants"
 	mdls "github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -67,7 +67,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 			self.ErrResp(w, err)
 			return
 		}
-		self.api.HttpApi().Respond().SetFlashMsg(w, flash.FlashTypeError, "Somebody is still paying.")
+		self.api.HttpApi().Respond().SetFlashMsg(w, constants.FlashTypeError, "Somebody is still paying.")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
