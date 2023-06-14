@@ -12,6 +12,7 @@ import (
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
+	"github.com/flarehotspot/sdk/utils/http/req"
 	mdls "github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -166,4 +167,30 @@ func (self *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	self.api.PaymentsApi().ExecCallback(w, r, p)
+}
+
+func (self *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
+
+	clnt, err := req.ClientDevice(r)
+	if err != nil {
+		self.ErrResp(w, err)
+		return
+	}
+
+	pur, err := self.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Device().Id())
+	if err != nil {
+		self.ErrResp(w, err)
+		return
+	}
+
+	err = pur.Cancel(r.Context())
+	if err != nil {
+		self.ErrResp(w, err)
+		return
+	}
+
+	self.api.HttpApi().Respond().SetFlashMsg(w, constants.FlashTypeInfo, "Purchase was cancelled.")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

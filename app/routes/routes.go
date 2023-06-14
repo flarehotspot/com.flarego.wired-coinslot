@@ -25,5 +25,6 @@ func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 		subrouter.Get("/received", provider.PaymentReceived).Name("payment:received")
 		subrouter.Get("/wallet", provider.UseWalletBal).Name("use:wallet")
 		subrouter.Get("/done", provider.Done).Name("payment:done")
+		subrouter.Get("/cancel", provider.Cancel).Name("payment:cancel")
 	})
 }

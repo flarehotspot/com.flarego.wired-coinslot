@@ -10,6 +10,7 @@ import (
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
+	"github.com/flarehotspot/sdk/utils/http/req"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -124,11 +125,9 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 }
 
 func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
-	clntSym := r.Context().Value(constants.ClientCtxKey)
-	clnt, ok := clntSym.(connmgr.IClientDevice)
-	if !ok {
-		errmsg := "Cannot determine client device"
-		http.Error(w, errmsg, http.StatusInternalServerError)
+	clnt, err := req.ClientDevice(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -140,6 +139,23 @@ func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opt.Done(w, r)
+}
+
+func (self *PaymentProvider) Cancel(w http.ResponseWriter, r *http.Request) {
+	clnt, err := req.ClientDevice(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	opt, ok := self.FindOpt(clnt)
+	if !ok {
+		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		http.Error(w, errmsg, http.StatusInternalServerError)
+		return
+	}
+
+	opt.Cancel(w, r)
 }
 
 func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
