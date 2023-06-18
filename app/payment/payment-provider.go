@@ -57,7 +57,7 @@ func (self *PaymentProvider) FindOpt(clnt connmgr.IClientDevice) (opt *PaymentOp
 	defer self.mu.RUnlock()
 
 	for _, opt := range self.options {
-		if opt.DeviceId() == clnt.Device().Id() {
+		if opt.DeviceId() == clnt.Id() {
 			return opt, true
 		}
 	}
@@ -84,7 +84,7 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 
 	opt, ok := self.FindOpt(clnt)
 	if !ok {
-		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		errmsg := "Cannot determine pending purchase for client: " + clnt.IpAddr()
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}
@@ -113,7 +113,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 
 	opt, ok := self.FindOpt(clnt)
 	if !ok {
-		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		errmsg := "Cannot determine pending purchase for client: " + clnt.IpAddr()
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}
@@ -133,7 +133,7 @@ func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
 
 	opt, ok := self.FindOpt(clnt)
 	if !ok {
-		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		errmsg := "Cannot determine pending purchase for client: " + clnt.IpAddr()
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}
@@ -150,7 +150,7 @@ func (self *PaymentProvider) Cancel(w http.ResponseWriter, r *http.Request) {
 
 	opt, ok := self.FindOpt(clnt)
 	if !ok {
-		errmsg := "Cannot determine pending purchase for client: " + clnt.Device().IpAddress()
+		errmsg := "Cannot determine pending purchase for client: " + clnt.IpAddr()
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		return
 	}

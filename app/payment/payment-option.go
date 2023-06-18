@@ -62,7 +62,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	if self.deviceId != nil && *self.deviceId != client.Device().Id() {
+	if self.deviceId != nil && *self.deviceId != client.Id() {
 		err := purchase.Cancel(r.Context())
 		if err != nil {
 			self.ErrResp(w, err)
@@ -73,7 +73,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	clntId := client.Device().Id()
+	clntId := client.Id()
 	purId := purchase.Id()
 	self.deviceId = &clntId
 	self.purchaseId = &purId
@@ -112,7 +112,7 @@ func (self *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.ICl
 		return
 	}
 	data := map[string]any{"amount": amount}
-	clnt.Emit("payment:received", data)
+	self.api.ClientMgr().SocketEmit(clnt, "payment:received", data)
 }
 
 func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, debit float64) error {
@@ -179,7 +179,7 @@ func (self *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pur, err := self.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Device().Id())
+	pur, err := self.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Id())
 	if err != nil {
 		self.ErrResp(w, err)
 		return
