@@ -26,7 +26,7 @@ func (self *PaymentProvider) Name() string {
 	return self.name
 }
 
-func (self *PaymentProvider) PaymentOpts() []payments.IPaymentOpt {
+func (self *PaymentProvider) PaymentOpts(clnt connmgr.IClientDevice) []payments.IPaymentOpt {
 	opts := []payments.IPaymentOpt{}
 	for _, opt := range self.options {
 		opts = append(opts, opt)
