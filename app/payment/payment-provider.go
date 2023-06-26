@@ -10,7 +10,6 @@ import (
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	"github.com/flarehotspot/sdk/utils/http/req"
 	"github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -125,7 +124,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 }
 
 func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
-	clnt, err := req.ClientDevice(r)
+	clnt, err := self.api.ClientReg().CurrentClient(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -142,7 +141,7 @@ func (self *PaymentProvider) Done(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *PaymentProvider) Cancel(w http.ResponseWriter, r *http.Request) {
-	clnt, err := req.ClientDevice(r)
+	clnt, err := self.api.ClientReg().CurrentClient(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

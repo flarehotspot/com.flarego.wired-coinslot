@@ -12,7 +12,6 @@ import (
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	"github.com/flarehotspot/sdk/utils/http/req"
 	mdls "github.com/flarehotspot/wired-coinslot/app/models"
 )
 
@@ -173,7 +172,7 @@ func (self *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
 
-	clnt, err := req.ClientDevice(r)
+	clnt, err := self.api.ClientReg().CurrentClient(r)
 	if err != nil {
 		self.ErrResp(w, err)
 		return
