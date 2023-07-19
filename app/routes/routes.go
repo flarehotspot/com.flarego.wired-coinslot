@@ -3,10 +3,10 @@ package routes
 import (
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/api/http/router"
-	"github.com/flarehotspot/wired-coinslot/app/controllers"
-	"github.com/flarehotspot/wired-coinslot/app/models"
-	"github.com/flarehotspot/wired-coinslot/app/payment"
-	"github.com/flarehotspot/wired-coinslot/app/routes/names"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/controllers"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/payment"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
 )
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/wired-coinslot/app/models"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 )
 
 type CoinslotsCtrl struct {

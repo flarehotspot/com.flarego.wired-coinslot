@@ -1,4 +1,5 @@
 ---
 
 name: "Wired Coinslot"
+package: "com.flarego.wired-coinslot"
 version: "0.0.1"

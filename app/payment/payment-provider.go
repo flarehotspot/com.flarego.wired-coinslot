@@ -10,7 +10,7 @@ import (
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	"github.com/flarehotspot/wired-coinslot/app/models"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 )
 
 type PaymentProvider struct {

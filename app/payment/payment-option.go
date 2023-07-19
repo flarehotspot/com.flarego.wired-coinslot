@@ -12,7 +12,7 @@ import (
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	mdls "github.com/flarehotspot/wired-coinslot/app/models"
+	mdls "github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 )
 
 type pmtEvt struct {

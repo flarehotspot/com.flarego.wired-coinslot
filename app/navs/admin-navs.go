@@ -6,7 +6,7 @@ import (
 	"github.com/flarehotspot/sdk/api/http/navigation"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	"github.com/flarehotspot/wired-coinslot/app/routes/names"
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
 )
 
 func SetAdminNavs(api plugin.IPluginApi) {
