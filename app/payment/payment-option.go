@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"sync"
 
+	mdls "github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/sdk/api/connmgr"
 	"github.com/flarehotspot/sdk/api/models"
 	"github.com/flarehotspot/sdk/api/plugin"
 	"github.com/flarehotspot/sdk/utils/constants"
-	mdls "github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 )
 
 type pmtEvt struct {
@@ -67,7 +67,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 			self.ErrResp(w, err)
 			return
 		}
-		self.api.HttpApi().Respond().SetFlashMsg(w, constants.FlashTypeError, "Somebody is still paying.")
+		self.api.HttpApi().Respond().SetFlashMsg(w, cnts.FlashTypeError, "Somebody is still paying.")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -190,6 +190,6 @@ func (self *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	self.api.HttpApi().Respond().SetFlashMsg(w, constants.FlashTypeInfo, "Purchase was cancelled.")
+	self.api.HttpApi().Respond().SetFlashMsg(w, cnts.FlashTypeInfo, "Purchase was cancelled.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

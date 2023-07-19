@@ -73,7 +73,7 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	clntSym := r.Context().Value(constants.ClientCtxKey)
+	clntSym := r.Context().Value(cnts.ClientCtxKey)
 	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
@@ -102,7 +102,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	clntSym := r.Context().Value(constants.ClientCtxKey)
+	clntSym := r.Context().Value(cnts.ClientCtxKey)
 	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
