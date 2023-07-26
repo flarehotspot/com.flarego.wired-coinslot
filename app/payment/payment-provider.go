@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/sdk/api/connmgr"
 	"github.com/flarehotspot/sdk/api/payments"
 	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/utils/constants"
-	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
+	"github.com/flarehotspot/sdk/utils/contexts"
 )
 
 type PaymentProvider struct {
@@ -73,7 +73,7 @@ func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	clntSym := r.Context().Value(cnts.ClientCtxKey)
+	clntSym := r.Context().Value(contexts.ClientCtxKey)
 	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
@@ -102,7 +102,7 @@ func (self *PaymentProvider) UseWalletBal(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	clntSym := r.Context().Value(cnts.ClientCtxKey)
+	clntSym := r.Context().Value(contexts.ClientCtxKey)
 	clnt, ok := clntSym.(connmgr.IClientDevice)
 	if !ok {
 		log.Println("Could not determine client device.")
