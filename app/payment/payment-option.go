@@ -91,7 +91,7 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 		"UseWallet":      stat.WalletDebit > 0,
 	}
 
-	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
+	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", nil, data)
 }
 
 func (self *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.IClientDevice, amount float64) {
