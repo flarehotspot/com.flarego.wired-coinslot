@@ -40,46 +40,46 @@ func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredC
 	}
 }
 
-func (self *PaymentOption) Name() string {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
-	return self.coinslot.Name()
+func (opt *PaymentOption) Name() string {
+	opt.mu.RLock()
+	defer opt.mu.RUnlock()
+	return opt.coinslot.Name()
 }
 
-func (self *PaymentOption) ErrResp(w http.ResponseWriter, err error) {
+func (opt *PaymentOption) ErrResp(w http.ResponseWriter, err error) {
 	log.Println(err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-func (self *PaymentOption) DeviceId() int64 {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
-	return *self.deviceId
+func (opt *PaymentOption) DeviceId() int64 {
+	opt.mu.RLock()
+	defer opt.mu.RUnlock()
+	return *opt.deviceId
 }
 
-func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client connmgr.IClientDevice, purchase models.IPurchase) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
+func (opt *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request, client connmgr.IClientDevice, purchase models.IPurchase) {
+	opt.mu.Lock()
+	defer opt.mu.Unlock()
 
-	if self.deviceId != nil && *self.deviceId != client.Id() {
+	if opt.deviceId != nil && *opt.deviceId != client.Id() {
 		err := purchase.Cancel(r.Context())
 		if err != nil {
-			self.ErrResp(w, err)
+			opt.ErrResp(w, err)
 			return
 		}
-		self.api.HttpApi().Respond().SetFlashMsg(w, flash.Error, "Somebody is still paying.")
+		flash.SetFlashMsg(w, flash.Error, "Somebody is still paying.")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	clntId := client.Id()
 	purId := purchase.Id()
-	self.deviceId = &clntId
-	self.purchaseId = &purId
+	opt.deviceId = &clntId
+	opt.purchaseId = &purId
 
 	stat, err := purchase.Stat(r.Context())
 	if err != nil {
-		self.ErrResp(w, err)
+		opt.ErrResp(w, err)
 		return
 	}
 
@@ -91,14 +91,14 @@ func (self *PaymentOption) PaymentHandler(w http.ResponseWriter, r *http.Request
 		"UseWallet":      stat.WalletDebit > 0,
 	}
 
-	self.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
+	opt.api.HttpApi().Respond().PortalView(w, r, "insert-coin.html", data)
 }
 
-func (self *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.IClientDevice, amount float64) {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
+func (opt *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.IClientDevice, amount float64) {
+	opt.mu.RLock()
+	defer opt.mu.RUnlock()
 
-	purchase, err := self.api.Models().Purchase().Find(ctx, *self.purchaseId)
+	purchase, err := opt.api.Models().Purchase().Find(ctx, *opt.purchaseId)
 	if err != nil {
 		log.Println(err)
 		return
@@ -111,21 +111,21 @@ func (self *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.ICl
 		return
 	}
 	data := map[string]any{"amount": amount}
-	self.api.ClientMgr().SocketEmit(clnt, "payment:received", data)
+	opt.api.ClientMgr().SocketEmit(clnt, "payment:received", data)
 }
 
-func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, debit float64) error {
-	self.mu.Lock()
-	defer self.mu.Unlock()
+func (opt *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, debit float64) error {
+	opt.mu.Lock()
+	defer opt.mu.Unlock()
 
 	ctx := r.Context()
-	tx, err := self.api.Db().BeginTx(ctx, nil)
+	tx, err := opt.api.Db().BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	p, err := self.api.Models().Purchase().FindTx(tx, ctx, *self.purchaseId)
+	p, err := opt.api.Models().Purchase().FindTx(tx, ctx, *opt.purchaseId)
 	if err != nil {
 		return err
 	}
@@ -156,40 +156,40 @@ func (self *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, 
 	return nil
 }
 
-func (self *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
+func (opt *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
+	opt.mu.RLock()
+	defer opt.mu.RUnlock()
 
-	p, err := self.api.Models().Purchase().Find(r.Context(), *self.purchaseId)
+	p, err := opt.api.Models().Purchase().Find(r.Context(), *opt.purchaseId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	self.api.PaymentsApi().ExecCallback(w, r, p)
+	opt.api.PaymentsApi().ExecCallback(w, r, p)
 }
 
-func (self *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
+func (opt *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
+	opt.mu.RLock()
+	defer opt.mu.RUnlock()
 
-	clnt, err := self.api.ClientReg().CurrentClient(r)
+	clnt, err := opt.api.ClientReg().CurrentClient(r)
 	if err != nil {
-		self.ErrResp(w, err)
+		opt.ErrResp(w, err)
 		return
 	}
 
-	pur, err := self.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Id())
+	pur, err := opt.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Id())
 	if err != nil {
-		self.ErrResp(w, err)
+		opt.ErrResp(w, err)
 		return
 	}
 
 	err = pur.Cancel(r.Context())
 	if err != nil {
-		self.ErrResp(w, err)
+		opt.ErrResp(w, err)
 		return
 	}
 
-	self.api.HttpApi().Respond().SetFlashMsg(w, flash.Info, "Purchase was cancelled.")
+	flash.SetFlashMsg(w, flash.Info, "Purchase was cancelled.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
