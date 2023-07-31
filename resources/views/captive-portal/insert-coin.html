@@ -1,21 +1,24 @@
+{{ $data := .Data }}
+{{ $h := .Helpers }}
+
 <h1>Please Insert Coin</h1>
 
 <hr />
 
 <h2>
   Available Wallet Balance:
-  <span id="wallet-bal">{{ WalletAvailBal }}/{{ WalletBal }}</span>
+  <span id="wallet-bal">{{ $data.WalletAvailBal }}/{{ $data.WalletBal }}</span>
 </h2>
 
 <hr />
 
 <form>
   <div class="form-check">
-    {% if UseWallet %}
+    {{ if $data.UseWallet }}
     <input class="form-check-input" type="checkbox" value="" checked="checked" id="use-wallet-bal-checkbox" />
-    {% else %}
+    {{ else }}
     <input class="form-check-input" type="checkbox" value="" id="use-wallet-bal-checkbox" />
-    {% endif %}
+    {{ end }}
 
     <label class="form-check-label" for="flexCheckDefault">
       Use Wallet Balance?
@@ -25,19 +28,19 @@
 
 <hr />
 
-<h2>Total Amount: <span id="total-amount">{{ PaymentTotal }}</span></h2>
+<h2>Total Amount: <span id="total-amount">{{ $data.PaymentTotal }}</span></h2>
 
 <hr />
-{% if PaymentTotal > 0 %}
-<a href='{{ helpers.UrlForRoute("payment:done") }}'>Done Payment</a>
-{% else %}
-<a href='{{ helpers.UrlForRoute("payment:cancel") }}'>Cancel Purchase</a>
-{% endif %}
+{{ if $data.PaymentTotal }}
+<a href='{{ $h.UrlForRoute "payment:done" }}'>Done Payment</a>
+{{ else }}
+<a href='{{ $h.UrlForRoute "payment:cancel" }}'>Cancel Purchase</a>
+{{ end }}
 
 <script>
-  window.USE_WALLET_URL = '{{ helpers.UrlForRoute("use:wallet") }}';
-  window.PaymentTotal = {{PaymentTotal}};
-  window.WalletDebit = {{WalletDebit}};
-  window.WalletBal = {{WalletBal}};
-  window.WalletAvailBal = {{WalletAvailBal}};
+  window.USE_WALLET_URL = '{{ $h.UrlForRoute "use:wallet" }}';
+  window.PaymentTotal = {{$data.PaymentTotal}};
+  window.WalletDebit = {{$data.WalletDebit}};
+  window.WalletBal = {{$data.WalletBal}};
+  window.WalletAvailBal = {{$data.WalletAvailBal}};
 </script>

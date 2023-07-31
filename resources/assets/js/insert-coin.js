@@ -1,5 +1,5 @@
 $(document).ready(function () {
-  var evt = new EventSource("/sse/events");
+  var evt = window.PortalEvents;
   var checkbox = $("#use-wallet-bal-checkbox");
   var walletBal = $("#wallet-bal");
   var totalAmount = $("#total-amount");
