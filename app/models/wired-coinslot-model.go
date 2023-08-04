@@ -25,7 +25,7 @@ func (self *WiredCoinslotModel) Create(
 	billRelayDelaySec uint,
 	billBouncetime uint,
 ) (*WiredCoinslot, error) {
-	db := self.api.Db()
+	db := self.api.DbApi()
 	result, err := db.ExecContext(ctx, `
   INSERT INTO wired_coinslots (
     alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
@@ -84,7 +84,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 }
 
 func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
-	allStmt, err := api.Db().Prepare(`
+	allStmt, err := api.DbApi().Prepare(`
     SELECT id, alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
       bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
     FROM wired_coinslots

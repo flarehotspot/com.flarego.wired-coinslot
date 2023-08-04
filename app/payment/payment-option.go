@@ -98,7 +98,7 @@ func (opt *PaymentOption) PaymentReceived(ctx context.Context, clnt connmgr.ICli
 	opt.mu.RLock()
 	defer opt.mu.RUnlock()
 
-	purchase, err := opt.api.Models().Purchase().Find(ctx, *opt.purchaseId)
+	purchase, err := opt.api.ModelsApi().Purchase().Find(ctx, *opt.purchaseId)
 	if err != nil {
 		log.Println(err)
 		return
@@ -119,13 +119,13 @@ func (opt *PaymentOption) UseWalletBal(w http.ResponseWriter, r *http.Request, d
 	defer opt.mu.Unlock()
 
 	ctx := r.Context()
-	tx, err := opt.api.Db().BeginTx(ctx, nil)
+	tx, err := opt.api.DbApi().BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	p, err := opt.api.Models().Purchase().FindTx(tx, ctx, *opt.purchaseId)
+	p, err := opt.api.ModelsApi().Purchase().FindTx(tx, ctx, *opt.purchaseId)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (opt *PaymentOption) Done(w http.ResponseWriter, r *http.Request) {
 	opt.mu.RLock()
 	defer opt.mu.RUnlock()
 
-	p, err := opt.api.Models().Purchase().Find(r.Context(), *opt.purchaseId)
+	p, err := opt.api.ModelsApi().Purchase().Find(r.Context(), *opt.purchaseId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,7 +178,7 @@ func (opt *PaymentOption) Cancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pur, err := opt.api.Models().Purchase().PendingPurchase(r.Context(), clnt.Id())
+	pur, err := opt.api.ModelsApi().Purchase().PendingPurchase(r.Context(), clnt.Id())
 	if err != nil {
 		opt.ErrResp(w, err)
 		return
