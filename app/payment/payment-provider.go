@@ -7,10 +7,10 @@ import (
 	"sync"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/sdk/api/connmgr"
-	"github.com/flarehotspot/sdk/api/payments"
-	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/utils/contexts"
+	"github.com/flarehotspot/sdk/v1.0.0/api/connmgr"
+	"github.com/flarehotspot/sdk/v1.0.0/api/payments"
+	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
+	"github.com/flarehotspot/sdk/v1.0.0/utils/contexts"
 )
 
 type PaymentProvider struct {
