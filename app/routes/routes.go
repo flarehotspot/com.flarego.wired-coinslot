@@ -5,11 +5,11 @@ import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/payment"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
+	"github.com/flarehotspot/sdk/v1.0.0/api"
 	"github.com/flarehotspot/sdk/v1.0.0/api/http/router"
-	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
 )
 
-func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+func SetRoutes(api api.IPluginApi, mdl *models.WiredCoinslotModel) {
 	coinctrl := controllers.NewCoinslotsCtrl(api, mdl)
 	adminRtr := api.HttpApi().Router().AdminRouter()
 	adminRtr.Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)

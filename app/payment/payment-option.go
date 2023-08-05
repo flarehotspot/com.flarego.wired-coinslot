@@ -9,9 +9,9 @@ import (
 	"sync"
 
 	mdls "github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
+	"github.com/flarehotspot/sdk/v1.0.0/api"
 	"github.com/flarehotspot/sdk/v1.0.0/api/connmgr"
 	"github.com/flarehotspot/sdk/v1.0.0/api/models"
-	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
 	"github.com/flarehotspot/sdk/v1.0.0/utils/flash"
 )
 
@@ -25,16 +25,16 @@ type pmtEvt struct {
 
 type PaymentOption struct {
 	mu         sync.RWMutex
-	api        plugin.IPluginApi
+	api        api.IPluginApi
 	provider   *PaymentProvider
 	coinslot   *mdls.WiredCoinslot
 	deviceId   *int64
 	purchaseId *int64
 }
 
-func NewPaymentOpt(api plugin.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {
+func NewPaymentOpt(API api.IPluginApi, prvdr *PaymentProvider, c *mdls.WiredCoinslot) *PaymentOption {
 	return &PaymentOption{
-		api:      api,
+		api:      API,
 		provider: prvdr,
 		coinslot: c,
 	}

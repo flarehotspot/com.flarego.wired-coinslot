@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
+	"github.com/flarehotspot/sdk/v1.0.0/api"
 )
 
 type CoinslotsCtrl struct {
-	api   plugin.IPluginApi
+	api   api.IPluginApi
 	model *models.WiredCoinslotModel
 }
 
@@ -17,6 +17,6 @@ func (ctrl *CoinslotsCtrl) IndexPage(w http.ResponseWriter, r *http.Request) {
 	http.Respond().AdminView(w, r, "index.html", nil)
 }
 
-func NewCoinslotsCtrl(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *CoinslotsCtrl {
+func NewCoinslotsCtrl(api api.IPluginApi, mdl *models.WiredCoinslotModel) *CoinslotsCtrl {
 	return &CoinslotsCtrl{api, mdl}
 }
