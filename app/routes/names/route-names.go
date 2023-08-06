@@ -1,7 +1,7 @@
 package names
 
-import "github.com/flarehotspot/sdk/v1.0.0/api/http/router"
+import "github.com/flarehotspot/sdk/api/http/router"
 
 const (
-	RouteCoinslotsIndex router.PluginRouteName = "coinslots:index"
+  RouteCoinslotsIndex router.PluginRouteName = "coinslots:index"
 )
