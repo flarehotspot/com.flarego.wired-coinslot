@@ -5,8 +5,8 @@ import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/payment"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
-	"github.com/flarehotspot/sdk/v1.0.0/api"
-	"github.com/flarehotspot/sdk/v1.0.0/api/http/router"
+	"github.com/flarehotspot/sdk/v1/api"
+	"github.com/flarehotspot/sdk/v1/api/http/router"
 )
 
 func SetRoutes(api api.IPluginApi, mdl *models.WiredCoinslotModel) {

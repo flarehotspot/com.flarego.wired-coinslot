@@ -6,7 +6,7 @@ import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/navs"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes"
-	"github.com/flarehotspot/sdk/v1.0.0/api"
+	"github.com/flarehotspot/sdk/v1/api"
 )
 
 func Init(api api.IPluginApi) {
