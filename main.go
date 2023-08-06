@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/flarehotspot/sdk"
-	"github.com/flarehotspot/sdk/v1/api"
+	"github.com/flarehotspot/sdk/v1.0.0/api"
 )
 
 func main() {}

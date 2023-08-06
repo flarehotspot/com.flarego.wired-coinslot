@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/flarehotspot/sdk/v1/api"
+	"github.com/flarehotspot/sdk/v1.0.0/api"
 )
 
 type WiredCoinslotModel struct {
