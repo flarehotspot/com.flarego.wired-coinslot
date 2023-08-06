@@ -7,16 +7,16 @@ import (
 	"sync"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/sdk/v1.0.0/api"
 	"github.com/flarehotspot/sdk/v1.0.0/api/connmgr"
 	"github.com/flarehotspot/sdk/v1.0.0/api/payments"
+	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
 	"github.com/flarehotspot/sdk/v1.0.0/utils/contexts"
 )
 
 type PaymentProvider struct {
 	mu      sync.RWMutex
 	name    string
-	api     api.IPluginApi
+	api     plugin.IPluginApi
 	model   *models.WiredCoinslotModel
 	options []*PaymentOption
 }
@@ -157,10 +157,10 @@ func (self *PaymentProvider) Cancel(w http.ResponseWriter, r *http.Request) {
 	opt.Cancel(w, r)
 }
 
-func NewPaymentProvider(API api.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
+func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
 	provider := PaymentProvider{
 		name:    "Wired Coinslots",
-		api:     API,
+		api:     api,
 		model:   mdl,
 		options: []*PaymentOption{},
 	}

@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/flarehotspot/sdk/v1.0.0/api"
+	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
 )
 
 type WiredCoinslotModel struct {
-	api     api.IPluginApi
+	api     plugin.IPluginApi
 	allStmt *sql.Stmt
 }
 
@@ -84,7 +84,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 	return coinslots, nil
 }
 
-func NewWiredCoinslotModel(api api.IPluginApi) (*WiredCoinslotModel, error) {
+func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
 	allStmt, err := api.DbApi().Prepare(`
     SELECT id, alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
       bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at

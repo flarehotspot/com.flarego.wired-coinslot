@@ -7,6 +7,7 @@ import (
 
 	"github.com/flarehotspot/sdk"
 	"github.com/flarehotspot/sdk/v1.0.0/api"
+	"github.com/flarehotspot/sdk/v1.0.0/api/plugin"
 )
 
 func Init(_sdk sdk.SDK) {
@@ -15,6 +16,6 @@ func Init(_sdk sdk.SDK) {
 		log.Println("Unable to get plugin api: ", err)
 	}
 
-	apiv1 := sym.(api.IPluginApi)
+	apiv1 := sym.(plugin.IPluginApi)
 	log.Printf("Success loading plugin: %s", apiv1.Name())
 }
