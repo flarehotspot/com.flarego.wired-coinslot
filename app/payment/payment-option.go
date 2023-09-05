@@ -9,10 +9,10 @@ import (
 	"sync"
 
 	mdls "github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/sdk/api/connmgr"
-	"github.com/flarehotspot/sdk/api/models"
-	"github.com/flarehotspot/sdk/api/plugin"
-	"github.com/flarehotspot/sdk/utils/flash"
+	"github.com/flarehotspot/core/sdk/api/connmgr"
+	"github.com/flarehotspot/core/sdk/api/models"
+	"github.com/flarehotspot/core/sdk/api/plugin"
+	"github.com/flarehotspot/core/sdk/utils/flash"
 )
 
 type pmtEvt struct {

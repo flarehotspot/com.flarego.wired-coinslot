@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app"
-	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 func main() {}
