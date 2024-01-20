@@ -14,7 +14,7 @@ type CoinslotsCtrl struct {
 
 func (ctrl *CoinslotsCtrl) IndexPage(w http.ResponseWriter, r *http.Request) {
 	http := ctrl.api.HttpApi()
-	http.Respond().AdminView(w, r, "index.html", nil)
+	http.HttpResponse().AdminView(w, r, "index.html", nil)
 }
 
 func NewCoinslotsCtrl(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *CoinslotsCtrl {
