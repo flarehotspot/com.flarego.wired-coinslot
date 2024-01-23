@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
-	"github.com/flarehotspot/core/sdk/api/plugin"
+	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 type WiredCoinslotModel struct {

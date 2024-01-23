@@ -3,7 +3,7 @@ package app
 import (
 	"log"
 
-	"github.com/flarehotspot/core/sdk/api/plugin"
+	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/navs"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes"
