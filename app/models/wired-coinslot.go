@@ -8,6 +8,7 @@ import (
 type WiredCoinslot struct {
 	id                int64
 	alias             *string
+	curr_device_id    *int64
 	coinPin           uint
 	coinInhibitPin    uint
 	coinRelayActive   bool
@@ -21,6 +22,10 @@ type WiredCoinslot struct {
 	billBouncetime    uint
 
 	createdAt time.Time
+}
+
+func (self *WiredCoinslot) Id() int64 {
+	return self.id
 }
 
 func (self *WiredCoinslot) Name() string {

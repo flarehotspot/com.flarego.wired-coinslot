@@ -12,5 +12,7 @@ func Init(api plugin.IPluginApi) {
 	if err != nil {
 		log.Println(err)
 	}
+
 	SetRoutes(api, mdl)
+	NewPaymentProvider(api, mdl)
 }

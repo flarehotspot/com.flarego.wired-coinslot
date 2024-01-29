@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS wired_coinslots (
     id INT AUTO_INCREMENT PRIMARY KEY,
     alias VARCHAR(255),
+    curr_device_id INT,
 
     coin_pin INT NOT NULL,
     coin_inhibit_pin INT NOT NULL,

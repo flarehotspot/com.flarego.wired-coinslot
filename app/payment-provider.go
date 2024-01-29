@@ -3,7 +3,7 @@ package app
 import (
 	"log"
 	"net/http"
-	"sync"
+	"strconv"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
 	connmgr "github.com/flarehotspot/core/sdk/api/connmgr"
@@ -11,70 +11,57 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) *PaymentProvider {
-	provider := PaymentProvider{
-		name:    "Wired Coinslots",
-		api:     api,
-		model:   mdl,
-		options: []*PaymentOption{},
+func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+	provider := &PaymentProvider{
+		name:  "Wired Coinslots",
+		api:   api,
+		model: mdl,
 	}
 
-	provider.LoadOpts()
-
-	return &provider
+	api.PaymentsApi().NewPaymentProvider(provider)
 }
 
 type PaymentProvider struct {
-	mu      sync.RWMutex
-	name    string
-	api     plugin.IPluginApi
-	model   *models.WiredCoinslotModel
-	options []*PaymentOption
+	name  string
+	api   plugin.IPluginApi
+	model *models.WiredCoinslotModel
 }
 
 func (self *PaymentProvider) Name() string {
 	return self.name
 }
 
-func (self *PaymentProvider) PaymentOpts(clnt connmgr.IClientDevice) []payments.PaymentOpt {
+func (self *PaymentProvider) GetOpts() []payments.PaymentOpt {
 	opts := []payments.PaymentOpt{}
-	for _, opt := range self.options {
-		opts = append(opts, opt.opt)
-	}
-	return opts
-}
-
-func (self *PaymentProvider) AddPaymentOpt(opt *PaymentOption) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
-	self.options = append(self.options, opt)
-}
-
-func (self *PaymentProvider) LoadOpts() {
 	coinslots, err := self.model.All()
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
+
 	for _, c := range coinslots {
+		id := strconv.Itoa(int(c.Id()))
 		opt := payments.PaymentOpt{
-			OptName: c.Name(),
-            VueRouteName: "insert-coin",
+			OptName:      c.Name(),
+			VueRouteName: "insert-coin",
+			RouteParams:  map[string]string{"id": id},
 		}
-		self.AddPaymentOpt(NewPaymentOption(opt))
+		opts = append(opts, opt)
 	}
+
+	return opts
+}
+
+func (self *PaymentProvider) PaymentOpts(clnt connmgr.IClientDevice) []payments.PaymentOpt {
+	return self.GetOpts()
 }
 
 func (self *PaymentProvider) FindOpt(clnt connmgr.IClientDevice) (opt payments.PaymentOpt, ok bool) {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
-
-	for _, opt := range self.options {
-		if opt.devId == clnt.Id() {
-			return opt.opt, true
-		}
-	}
-
+	// for _, opt := range self.GetOpts() {
+	// if opt.devId == clnt.Id() {
+	// 	return opt.opt, true
+	// }
+	// }
 	return payments.PaymentOpt{}, false
 }
 

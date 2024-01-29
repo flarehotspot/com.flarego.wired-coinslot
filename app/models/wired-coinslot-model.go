@@ -14,6 +14,7 @@ type WiredCoinslotModel struct {
 func (self *WiredCoinslotModel) Create(
 	ctx context.Context,
 	alias *string,
+	currDeviceId *int64,
 	coinPin uint,
 	coinInhibitPin uint,
 	coinRelayActive bool,
@@ -28,11 +29,11 @@ func (self *WiredCoinslotModel) Create(
 	db := self.api.DbApi()
 	result, err := db.ExecContext(ctx, `
   INSERT INTO wired_coinslots (
-    alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+    alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
     bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime
-  ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-		alias, coinPin, coinInhibitPin, coinRelayActive, coinRelayDelaySec, coinBouncetime,
+		alias, currDeviceId, coinPin, coinInhibitPin, coinRelayActive, coinRelayDelaySec, coinBouncetime,
 		billPin, billInhibitPin, billRelayActive, billRelayDelaySec, billBouncetime,
 	)
 	if err != nil {
@@ -46,13 +47,13 @@ func (self *WiredCoinslotModel) Create(
 
 	var c WiredCoinslot
 	err = db.QueryRowContext(ctx, `
-  SELECT id, alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+  SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
     bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
   FROM wired_coinslots
   WHERE id = ?
   LIMIT 1
   `, lastId).Scan(
-		&c.id, &c.alias, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
+		&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
 		&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
 	)
 
@@ -71,7 +72,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 	for rows.Next() {
 		var c WiredCoinslot
 		err := rows.Scan(
-			&c.id, &c.alias, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
+			&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
 			&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
 		)
 		if err != nil {
@@ -85,7 +86,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 
 func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
 	allStmt, err := api.DbApi().Prepare(`
-    SELECT id, alias, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+    SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
       bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
     FROM wired_coinslots
     `)

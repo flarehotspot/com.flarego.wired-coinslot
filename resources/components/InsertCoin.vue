@@ -4,6 +4,12 @@
 
 <script>
 define(function () {
-  return { template: template };
+  return {
+    props: ['flareView'],
+    template: template,
+    mounted: function () {
+      console.log('params: ', this.$route.params);
+    }
+  };
 });
 </script>
