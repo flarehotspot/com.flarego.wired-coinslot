@@ -6,6 +6,20 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
+func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
+	allStmt, err := api.DbApi().Prepare(`
+    SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+      bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
+    FROM wired_coinslots
+    `)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &WiredCoinslotModel{api, allStmt}, nil
+}
+
 type WiredCoinslotModel struct {
 	api     plugin.IPluginApi
 	allStmt *sql.Stmt
@@ -45,19 +59,7 @@ func (self *WiredCoinslotModel) Create(
 		return nil, err
 	}
 
-	var c WiredCoinslot
-	err = db.QueryRowContext(ctx, `
-  SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
-    bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
-  FROM wired_coinslots
-  WHERE id = ?
-  LIMIT 1
-  `, lastId).Scan(
-		&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
-		&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
-	)
-
-	return &c, nil
+    return self.Find(lastId)
 }
 
 func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
@@ -70,7 +72,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 
 	coinslots := []*WiredCoinslot{}
 	for rows.Next() {
-		var c WiredCoinslot
+        c := NewWiredCoinslot(self)
 		err := rows.Scan(
 			&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
 			&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
@@ -78,22 +80,61 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 		if err != nil {
 			return nil, err
 		}
-		coinslots = append(coinslots, &c)
+		coinslots = append(coinslots, c)
 	}
 
 	return coinslots, nil
 }
 
-func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
-	allStmt, err := api.DbApi().Prepare(`
-    SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
-      bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
-    FROM wired_coinslots
-    `)
+func (self *WiredCoinslotModel) Find(id int64) (*WiredCoinslot, error) {
+    c := NewWiredCoinslot(self)
+	err := self.api.DbApi().QueryRow(`
+      SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+    bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
+      FROM wired_coinslots
+      WHERE id = ?
+      LIMIT 1
+      `, id).Scan(
+		&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
+		&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
 
+// Update coinslot
+func (self *WiredCoinslotModel) Update(
+	ctx context.Context,
+	id int64,
+	alias *string,
+	currDeviceId *int64,
+	coinPin uint,
+	coinInhibitPin uint,
+	coinRelayActive bool,
+	coinRelayDelaySec uint,
+	coinBouncetime uint,
+	billPin *uint,
+	billInhibitPin uint,
+	billRelayActive bool,
+	billRelayDelaySec uint,
+	billBouncetime uint,
+) (*WiredCoinslot, error) {
+	db := self.api.DbApi()
+	_, err := db.ExecContext(ctx, `
+  UPDATE wired_coinslots SET
+    alias = ?, curr_device_id = ?, coin_pin = ?, coin_inhibit_pin = ?, coin_relay_active = ?, coin_relay_delay_sec = ?, coin_bouncetime = ?,
+    bill_pin = ?, bill_inhibit_pin = ?, bill_relay_active = ?, bill_relay_delay_sec = ?, bill_bouncetime = ?
+  WHERE id = ?
+  `,
+		alias, currDeviceId, coinPin, coinInhibitPin, coinRelayActive, coinRelayDelaySec, coinBouncetime,
+		billPin, billInhibitPin, billRelayActive, billRelayDelaySec, billBouncetime,
+		id,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &WiredCoinslotModel{api, allStmt}, nil
+	return self.Find(id)
 }
