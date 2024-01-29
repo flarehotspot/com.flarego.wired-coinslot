@@ -1,22 +1,29 @@
-package routes
+package app
 
 import (
 	// "github.com/flarehotspot/com.flarego.wired-coinslot/app/controllers"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	// "github.com/flarehotspot/com.flarego.wired-coinslot/app/payment"
 	// "github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
 	// "github.com/flarehotspot/core/sdk/api/http/router"
+	sdkhttp "github.com/flarehotspot/core/sdk/api/http"
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+
 	// coinctrl := controllers.NewCoinslotsCtrl(api, mdl)
 	// adminRtr := api.HttpApi().HttpRouter().AdminRouter()
 	// adminRtr.Get("/index", coinctrl.IndexPage).Name(names.RouteCoinslotsIndex)
 
-	// paymentApi := api.PaymentsApi()
-	// provider := payment.NewPaymentProvider(api, mdl)
-	// paymentApi.NewPaymentProvider(provider)
+	api.HttpApi().VueRouter().RegisterPortalRoutes(sdkhttp.VuePortalRoute{
+		RouteName: "insert-coin",
+		RoutePath: "/coinslot/insert-coin",
+		Component: "InsertCoin.vue",
+	})
+
+	paymentApi := api.PaymentsApi()
+	provider := NewPaymentProvider(api, mdl)
+	paymentApi.NewPaymentProvider(provider)
 	// deviceMw := api.HttpApi().Middlewares().Device()
 
 	// plugRtr := api.HttpApi().HttpRouter().PluginRouter()

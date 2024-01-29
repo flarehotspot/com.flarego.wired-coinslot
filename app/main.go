@@ -3,17 +3,14 @@ package app
 import (
 	"log"
 
-	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/com.flarego.wired-coinslot/app/navs"
-	"github.com/flarehotspot/com.flarego.wired-coinslot/app/routes"
+	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 func Init(api plugin.IPluginApi) {
-  mdl, err := models.NewWiredCoinslotModel(api)
-  if err != nil {
-    log.Println(err)
-  }
-	routes.SetRoutes(api, mdl)
-	navs.SetAdminNavs(api)
+	mdl, err := models.NewWiredCoinslotModel(api)
+	if err != nil {
+		log.Println(err)
+	}
+	SetRoutes(api, mdl)
 }
