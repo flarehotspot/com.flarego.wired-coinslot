@@ -14,5 +14,6 @@ func Init(api plugin.IPluginApi) {
 	}
 
 	SetRoutes(api, mdl)
+	SetComponents(api, mdl)
 	NewPaymentProvider(api, mdl)
 }
