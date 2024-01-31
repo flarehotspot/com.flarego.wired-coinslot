@@ -10,11 +10,11 @@ import (
 
 func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		vars := api.HttpApi().MuxVars(r)
+		vars := api.Http().MuxVars(r)
 		optname := vars["optname"]
 		token := vars["token"]
 		amountstr := vars["amount"]
-		res := api.HttpApi().VueResponse()
+		res := api.Http().VueResponse()
 
 		// convert to float64
 		amount, err := strconv.ParseFloat(amountstr, 64)
@@ -23,7 +23,7 @@ func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 			return
 		}
 
-		if err = api.PaymentsApi().PaymentReceived(r.Context(), token, optname, amount); err != nil {
+		if err = api.Payments().PaymentReceived(r.Context(), token, optname, amount); err != nil {
 			res.Error(w, err.Error(), 500)
 			return
 		}
@@ -32,5 +32,5 @@ func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 		res.Json(w, nil, 200)
 	}
 
-	api.HttpApi().HttpRouter().PluginRouter().Post("/payment-received/{optname}/{token}/{amount}", handler).Name("payment:received")
+	api.Http().HttpRouter().PluginRouter().Post("/payment-received/{optname}/{token}/{amount}", handler).Name("payment:received")
 }

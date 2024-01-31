@@ -18,7 +18,7 @@ func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 		model: mdl,
 	}
 
-	api.PaymentsApi().NewPaymentProvider(provider)
+	api.Payments().NewPaymentProvider(provider)
 }
 
 type PaymentProvider struct {

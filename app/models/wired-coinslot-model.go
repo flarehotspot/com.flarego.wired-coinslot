@@ -7,7 +7,7 @@ import (
 )
 
 func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
-	allStmt, err := api.DbApi().Prepare(`
+	allStmt, err := api.Db().Prepare(`
     SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
       bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
     FROM wired_coinslots
@@ -40,7 +40,7 @@ func (self *WiredCoinslotModel) Create(
 	billRelayDelaySec uint,
 	billBouncetime uint,
 ) (*WiredCoinslot, error) {
-	db := self.api.DbApi()
+	db := self.api.Db()
 	result, err := db.ExecContext(ctx, `
   INSERT INTO wired_coinslots (
     alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
@@ -59,7 +59,7 @@ func (self *WiredCoinslotModel) Create(
 		return nil, err
 	}
 
-    return self.Find(lastId)
+	return self.Find(lastId)
 }
 
 func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
@@ -72,7 +72,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 
 	coinslots := []*WiredCoinslot{}
 	for rows.Next() {
-        c := NewWiredCoinslot(self)
+		c := NewWiredCoinslot(self)
 		err := rows.Scan(
 			&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
 			&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
@@ -87,8 +87,8 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 }
 
 func (self *WiredCoinslotModel) Find(id int64) (*WiredCoinslot, error) {
-    c := NewWiredCoinslot(self)
-	err := self.api.DbApi().QueryRow(`
+	c := NewWiredCoinslot(self)
+	err := self.api.Db().QueryRow(`
       SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
     bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
       FROM wired_coinslots
@@ -121,7 +121,7 @@ func (self *WiredCoinslotModel) Update(
 	billRelayDelaySec uint,
 	billBouncetime uint,
 ) (*WiredCoinslot, error) {
-	db := self.api.DbApi()
+	db := self.api.Db()
 	_, err := db.ExecContext(ctx, `
   UPDATE wired_coinslots SET
     alias = ?, curr_device_id = ?, coin_pin = ?, coin_inhibit_pin = ?, coin_relay_active = ?, coin_relay_delay_sec = ?, coin_bouncetime = ?,

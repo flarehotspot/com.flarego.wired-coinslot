@@ -10,15 +10,15 @@ import (
 )
 
 func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
-	api.HttpApi().VueRouter().RegisterPortalRoutes(sdkhttp.VuePortalRoute{
+	api.Http().VueRouter().RegisterPortalRoutes(sdkhttp.VuePortalRoute{
 		RouteName: "insert-coin",
 		RoutePath: "/coinslot/:id/insert-coin",
 		Component: "InsertCoin.vue",
 		HandlerFunc: func(w http.ResponseWriter, r *http.Request) {
-			res := api.HttpApi().VueResponse()
+			res := api.Http().VueResponse()
 
 			token := r.URL.Query().Get("token")
-			purchase, err := api.ModelsApi().Purchase().FindByToken(r.Context(), token)
+			purchase, err := api.Models().Purchase().FindByToken(r.Context(), token)
 			if err != nil {
 				res.FlashMsg("error", "Invalid purchase token.")
 				res.Json(w, nil, 500)
@@ -31,7 +31,7 @@ func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 				return
 			}
 
-			clnt, err := api.HttpApi().GetDevice(r)
+			clnt, err := api.Http().GetDevice(r)
 			if err != nil {
 				res.FlashMsg("error", err.Error())
 				res.Json(w, nil, 500)
@@ -44,7 +44,7 @@ func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 				return
 			}
 
-			idstr := api.HttpApi().MuxVars(r)["id"]
+			idstr := api.Http().MuxVars(r)["id"]
 			id, err := strconv.ParseInt(idstr, 10, 64)
 			if err != nil {
 				res.FlashMsg("error", err.Error())
@@ -80,7 +80,7 @@ func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 
 		},
 		Middlewares: []func(http.Handler) http.Handler{
-			api.HttpApi().Middlewares().Device(),
+			api.Http().Middlewares().Device(),
 		},
 	})
 
