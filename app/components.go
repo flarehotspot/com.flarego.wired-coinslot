@@ -31,7 +31,7 @@ func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 				return
 			}
 
-			clnt, err := api.HttpApi().ClientDevice(r)
+			clnt, err := api.HttpApi().GetDevice(r)
 			if err != nil {
 				res.FlashMsg("error", err.Error())
 				res.Json(w, nil, 500)

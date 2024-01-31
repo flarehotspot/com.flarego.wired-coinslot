@@ -1,15 +1,38 @@
 <template>
-  <h3>Insert Coin</h3>
+    <div>
+        <h3>Insert Coin</h3>
+        <button @click.prevent="addPayment">Click Me</button>
+    </div>
 </template>
 
 <script>
 define(function () {
-  return {
-    props: ['flareView'],
-    template: template,
-    mounted: function () {
-      console.log('params: ', this.$route.params);
-    }
-  };
+    var $flare = window.$flare;
+
+    return {
+        props: ['flareView'],
+        template: template,
+        mounted: function () {
+            console.log('params: ', this.$route.params);
+        },
+        methods: {
+            addPayment: function () {
+                var self = this;
+                var path =
+                    '<% .Helpers.UrlForRoute "payment:received" "token" "TOKEN" "optname" "OPTNAME" "amount" "AMOUNT"  %>';
+                path = path.replace('TOKEN', this.$route.query.token);
+                path = path.replace('OPTNAME', 'wired-coinslot');
+                path = path.replace('AMOUNT', 1);
+                $flare.http
+                    .post(path)
+                    .then(function (data) {
+                        console.log(data);
+                    })
+                    .catch(function (e) {
+                        console.error(e);
+                    });
+            }
+        }
+    };
 });
 </script>
