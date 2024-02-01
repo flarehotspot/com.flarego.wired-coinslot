@@ -7,7 +7,7 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func Init(api plugin.IPluginApi) {
+func Init(api plugin.PluginApi) {
 	mdl, err := models.NewWiredCoinslotModel(api)
 	if err != nil {
 		log.Println(err)

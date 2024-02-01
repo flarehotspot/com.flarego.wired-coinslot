@@ -6,8 +6,8 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
-	allStmt, err := api.Db().Prepare(`
+func NewWiredCoinslotModel(api plugin.PluginApi) (*WiredCoinslotModel, error) {
+	allStmt, err := api.SqlDb().Prepare(`
     SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
       bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
     FROM wired_coinslots
@@ -21,7 +21,7 @@ func NewWiredCoinslotModel(api plugin.IPluginApi) (*WiredCoinslotModel, error) {
 }
 
 type WiredCoinslotModel struct {
-	api     plugin.IPluginApi
+	api     plugin.PluginApi
 	allStmt *sql.Stmt
 }
 
@@ -40,7 +40,7 @@ func (self *WiredCoinslotModel) Create(
 	billRelayDelaySec uint,
 	billBouncetime uint,
 ) (*WiredCoinslot, error) {
-	db := self.api.Db()
+	db := self.api.SqlDb()
 	result, err := db.ExecContext(ctx, `
   INSERT INTO wired_coinslots (
     alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
@@ -88,7 +88,7 @@ func (self *WiredCoinslotModel) All() ([]*WiredCoinslot, error) {
 
 func (self *WiredCoinslotModel) Find(id int64) (*WiredCoinslot, error) {
 	c := NewWiredCoinslot(self)
-	err := self.api.Db().QueryRow(`
+	err := self.api.SqlDb().QueryRow(`
       SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
     bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
       FROM wired_coinslots
@@ -121,7 +121,7 @@ func (self *WiredCoinslotModel) Update(
 	billRelayDelaySec uint,
 	billBouncetime uint,
 ) (*WiredCoinslot, error) {
-	db := self.api.Db()
+	db := self.api.SqlDb()
 	_, err := db.ExecContext(ctx, `
   UPDATE wired_coinslots SET
     alias = ?, curr_device_id = ?, coin_pin = ?, coin_inhibit_pin = ?, coin_relay_active = ?, coin_relay_delay_sec = ?, coin_bouncetime = ?,

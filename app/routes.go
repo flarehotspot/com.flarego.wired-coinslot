@@ -8,7 +8,7 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func SetRoutes(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+func SetRoutes(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		vars := api.Http().MuxVars(r)
 		optname := vars["optname"]

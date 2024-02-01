@@ -9,6 +9,6 @@ import (
 
 func main() {}
 
-func Init(api plugin.IPluginApi) {
+func Init(api plugin.PluginApi) {
 	app.Init(api)
 }

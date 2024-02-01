@@ -11,7 +11,7 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+func NewPaymentProvider(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 	provider := &PaymentProvider{
 		name:  "Wired Coinslots",
 		api:   api,
@@ -23,7 +23,7 @@ func NewPaymentProvider(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
 
 type PaymentProvider struct {
 	name  string
-	api   plugin.IPluginApi
+	api   plugin.PluginApi
 	model *models.WiredCoinslotModel
 }
 
@@ -52,11 +52,11 @@ func (self *PaymentProvider) GetOpts() []payments.PaymentOpt {
 	return opts
 }
 
-func (self *PaymentProvider) PaymentOpts(clnt connmgr.IClientDevice) []payments.PaymentOpt {
+func (self *PaymentProvider) PaymentOpts(clnt connmgr.ClientDevice) []payments.PaymentOpt {
 	return self.GetOpts()
 }
 
-func (self *PaymentProvider) FindOpt(clnt connmgr.IClientDevice) (opt payments.PaymentOpt, ok bool) {
+func (self *PaymentProvider) FindOpt(clnt connmgr.ClientDevice) (opt payments.PaymentOpt, ok bool) {
 	// for _, opt := range self.GetOpts() {
 	// if opt.devId == clnt.Id() {
 	// 	return opt.opt, true

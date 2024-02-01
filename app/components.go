@@ -9,7 +9,7 @@ import (
 	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
-func SetComponents(api plugin.IPluginApi, mdl *models.WiredCoinslotModel) {
+func SetComponents(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 	api.Http().VueRouter().RegisterPortalRoutes(sdkhttp.VuePortalRoute{
 		RouteName: "insert-coin",
 		RoutePath: "/coinslot/:id/insert-coin",
