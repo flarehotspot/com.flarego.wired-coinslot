@@ -17,10 +17,8 @@ define(function () {
         },
         methods: {
             addPayment: function () {
-                var self = this;
                 var path =
-                    '<% .Helpers.UrlForRoute "payment:received" "token" "TOKEN" "optname" "OPTNAME" "amount" "AMOUNT"  %>';
-                path = path.replace('TOKEN', this.$route.query.token);
+                    '<% .Helpers.UrlForRoute "payment:received" "optname" "OPTNAME" "amount" "AMOUNT"  %>';
                 path = path.replace('OPTNAME', 'wired-coinslot');
                 path = path.replace('AMOUNT', 1);
                 $flare.http

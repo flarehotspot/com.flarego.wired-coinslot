@@ -17,16 +17,9 @@ func SetComponents(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 		HandlerFunc: func(w http.ResponseWriter, r *http.Request) {
 			res := api.Http().VueResponse()
 
-			token := r.URL.Query().Get("token")
-			purchase, err := api.Models().Purchase().FindByToken(r.Context(), token)
+			purchase, err := api.Payments().GetPendingPurchase(r)
 			if err != nil {
-				res.FlashMsg("error", "Invalid purchase token.")
-				res.Json(w, nil, 500)
-				return
-			}
-
-			if purchase.IsProcessed() {
-				res.FlashMsg("error", "This purchase has already been processed.")
+				res.FlashMsg("error", err.Error())
 				res.Json(w, nil, 500)
 				return
 			}
@@ -34,12 +27,6 @@ func SetComponents(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 			clnt, err := api.Http().GetDevice(r)
 			if err != nil {
 				res.FlashMsg("error", err.Error())
-				res.Json(w, nil, 500)
-				return
-			}
-
-			if purchase.DeviceId() != clnt.Id() {
-				res.FlashMsg("error", "This purchase is not for this device.")
 				res.Json(w, nil, 500)
 				return
 			}
