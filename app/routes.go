@@ -9,8 +9,8 @@ import (
 func SetRoutes(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
 	rtr := api.Http().HttpRouter().PluginRouter()
 	paymentReceivedHandler := handlers.PaymentReceivedHandler(api, mdl)
-	// donePaymentHandler := handlers.DonePayingHandler(api)
+	donePaymentHandler := handlers.DonePayingHandler(api)
 
 	rtr.Post("/payment-received/{optname}/{amount}", paymentReceivedHandler).Name("payment:received")
-	// rtr.Post("/done-paying", donePaymentHandler).Name("payment:done")
+	rtr.Post("/done-paying", donePaymentHandler).Name("payment:done")
 }
