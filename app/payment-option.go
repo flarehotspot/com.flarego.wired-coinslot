@@ -1,7 +1,7 @@
 package app
 
 import (
-	sdkpayments "github.com/flarehotspot/flarehotspot/core/sdk/api/payments"
+	sdkpayments "github.com/flarehotspot/sdk/api/payments"
 )
 
 func NewPaymentOption(opt sdkpayments.PaymentOpt) *PaymentOption {

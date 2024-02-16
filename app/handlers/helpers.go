@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	sdkhttp "github.com/flarehotspot/flarehotspot/core/sdk/api/http"
-	sdkpayments "github.com/flarehotspot/flarehotspot/core/sdk/api/payments"
+	sdkhttp "github.com/flarehotspot/sdk/api/http"
+	sdkpayments "github.com/flarehotspot/sdk/api/payments"
 )
 
 func ShowPurchase(w http.ResponseWriter, res sdkhttp.VueResponse, purchase sdkpayments.Purchase) {
