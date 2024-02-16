@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	sdkplugin "github.com/flarehotspot/core/sdk/api/plugin"
+	sdkplugin "github.com/flarehotspot/flarehotspot/core/sdk/api/plugin"
 )
 
 func PaymentReceivedHandler(api sdkplugin.PluginApi, mdl *models.WiredCoinslotModel) http.HandlerFunc {
