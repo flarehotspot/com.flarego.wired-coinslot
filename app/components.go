@@ -3,8 +3,8 @@ package app
 import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/handlers"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	"github.com/flarehotspot/sdk/api/http"
-	"github.com/flarehotspot/sdk/api/plugin"
+	"github.com/flarehotspot/core/sdk/api/http"
+	"github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 func SetComponents(api sdkplugin.PluginApi, mdl *models.WiredCoinslotModel) {

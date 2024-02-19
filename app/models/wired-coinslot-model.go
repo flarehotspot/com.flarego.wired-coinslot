@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
-	plugin "github.com/flarehotspot/sdk/api/plugin"
+	plugin "github.com/flarehotspot/core/sdk/api/plugin"
 )
 
 func NewWiredCoinslotModel(api plugin.PluginApi) (*WiredCoinslotModel, error) {
