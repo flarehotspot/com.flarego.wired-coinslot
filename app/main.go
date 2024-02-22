@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	plugin "github.com/flarehotspot/core/sdk/api/plugin"
+	plugin "github.com/flarehotspot/sdk/api/plugin"
 )
 
 func Init(api plugin.PluginApi) {
