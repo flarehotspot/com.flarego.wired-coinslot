@@ -19,7 +19,7 @@ func InsertCoinHandler(api sdkplugin.PluginApi, mdl *models.WiredCoinslotModel) 
 			return
 		}
 
-		clnt, err := api.Http().GetDevice(r)
+		clnt, err := api.Http().GetClientDevice(r)
 		if err != nil {
 			res.FlashMsg("error", err.Error())
 			res.Json(w, nil, 500)
