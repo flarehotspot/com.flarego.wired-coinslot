@@ -35,7 +35,7 @@ func PaymentReceivedHandler(api sdkplugin.PluginApi, mdl *models.WiredCoinslotMo
 			return
 		}
 
-		res.FlashMsg("success", "Payment received")
+		res.SetFlashMsg("success", "Payment received")
 		ShowPurchase(w, res, purchase)
 	}
 }

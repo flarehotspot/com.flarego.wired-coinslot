@@ -10,7 +10,7 @@ import (
 func ShowPurchase(w http.ResponseWriter, res sdkhttp.VueResponse, purchase sdkpayments.Purchase) {
 	state, err := purchase.State()
 	if err != nil {
-		res.FlashMsg("error", err.Error())
+		res.SetFlashMsg("error", err.Error())
 		return
 	}
 	data := map[string]interface{}{
