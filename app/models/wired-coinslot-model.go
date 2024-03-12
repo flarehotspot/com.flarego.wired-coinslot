@@ -104,6 +104,24 @@ func (self *WiredCoinslotModel) Find(id int64) (*WiredCoinslot, error) {
 	return c, nil
 }
 
+func (self *WiredCoinslotModel) FindByClientId(id int64) (*WiredCoinslot, error) {
+	c := NewWiredCoinslot(self)
+	err := self.api.SqlDb().QueryRow(`
+      SELECT id, alias, curr_device_id, coin_pin, coin_inhibit_pin, coin_relay_active, coin_relay_delay_sec, coin_bouncetime,
+    bill_pin, bill_inhibit_pin, bill_relay_active, bill_relay_delay_sec, bill_bouncetime, created_at
+      FROM wired_coinslots
+      WHERE curr_device_id = ?
+      LIMIT 1
+      `, id).Scan(
+		&c.id, &c.alias, &c.curr_device_id, &c.coinPin, &c.coinInhibitPin, &c.coinRelayActive, &c.coinRelayDelaySec, &c.coinBouncetime,
+		&c.billPin, &c.billInhibitPin, &c.billRelayActive, &c.billRelayDelaySec, &c.billBouncetime, &c.createdAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 // Update coinslot
 func (self *WiredCoinslotModel) Update(
 	ctx context.Context,
@@ -137,4 +155,10 @@ func (self *WiredCoinslotModel) Update(
 	}
 
 	return self.Find(id)
+}
+
+func (self *WiredCoinslotModel) ResetAll() error {
+	db := self.api.SqlDb()
+	_, err := db.Exec(`UPDATE wired_coinslots SET curr_device_id = 0`)
+	return err
 }

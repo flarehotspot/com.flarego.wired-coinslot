@@ -13,7 +13,13 @@ func Init(api plugin.PluginApi) {
 		log.Println(err)
 	}
 
+	err = mdl.ResetAll()
+	if err != nil {
+		log.Println(err)
+	}
+
 	SetRoutes(api, mdl)
 	SetComponents(api, mdl)
+
 	NewPaymentProvider(api, mdl)
 }

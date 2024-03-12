@@ -54,7 +54,7 @@ func (self *WiredCoinslot) SetCurrentDeviceId(id int64) {
 }
 
 // Update coinslot
-func (self *WiredCoinslot) UpdateTx(ctx context.Context) error {
+func (self *WiredCoinslot) Update(ctx context.Context) error {
 	_, err := self.mdl.Update(ctx, self.id, self.alias, self.curr_device_id, self.coinPin, self.coinInhibitPin, self.coinRelayActive, self.coinRelayDelaySec, self.coinBouncetime, self.billPin, self.billInhibitPin, self.billRelayActive, self.billRelayDelaySec, self.billBouncetime)
 	return err
 }
