@@ -13,8 +13,14 @@ define(function () {
     var $flare = window.$flare;
 
     return {
-        props: ['flareView'],
         template: template,
+        data: function(){
+            return {
+                flareView: {
+                    data: {}
+                }
+            }
+        },
         computed: {
             data: {
                 get: function () {
@@ -25,13 +31,28 @@ define(function () {
                 deep: true
             }
         },
+        mounted: function() {
+            var self = this;
+            var url = '<% .Helpers.UrlForRoute "payment.insert_coin" "id" "ID" %>';
+            url = url.replace("ID", self.$route.params.id);
+
+            $flare.http.get(url)
+                .then(function(data) {
+                    console.log('data:', data);
+                    self.flareView.data = data;
+                })
+                .catch(function(err) {
+                    console.error(err);
+                })
+        },
         methods: {
             addPayment: function () {
                 var self = this;
                 var path =
-                    '<% .Helpers.UrlForRoute "payment:received" "optname" "OPTNAME" "amount" "AMOUNT"  %>';
-                path = path.replace('OPTNAME', self.flareView.data.optname);
+                    '<% .Helpers.UrlForRoute "payment:received" "id" "ID" "amount" "AMOUNT"  %>';
+                path = path.replace('ID', self.$route.params.id);
                 path = path.replace('AMOUNT', 1);
+
                 $flare.http
                     .post(path)
                     .then(function (data) {
