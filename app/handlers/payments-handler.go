@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
+	"com.flarego.wired-coinslot/app/models"
 	sdkhttp "sdk/api/http"
 	sdkpayments "sdk/api/payments"
 	sdkplugin "sdk/api/plugin"

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
+	"com.flarego.wired-coinslot/app/models"
 	"sdk/api/http"
 	"sdk/api/plugin"
 )
