@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	connmgr "github.com/flarehotspot/sdk/api/connmgr"
-	payments "github.com/flarehotspot/sdk/api/payments"
-	plugin "github.com/flarehotspot/sdk/api/plugin"
+	connmgr "sdk/api/connmgr"
+	payments "sdk/api/payments"
+	plugin "sdk/api/plugin"
 )
 
 func NewPaymentProvider(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {

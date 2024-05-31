@@ -3,8 +3,8 @@ package app
 import (
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/handlers"
 	"github.com/flarehotspot/com.flarego.wired-coinslot/app/models"
-	sdkhttp "github.com/flarehotspot/sdk/api/http"
-	plugin "github.com/flarehotspot/sdk/api/plugin"
+	sdkhttp "sdk/api/http"
+	plugin "sdk/api/plugin"
 )
 
 func SetRoutes(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {

@@ -4,9 +4,9 @@ import (
 	// "net/http"
 
 	// "github.com/flarehotspot/com.flarego.wired-coinslot/app/routes/names"
-	// "github.com/flarehotspot/sdk/api/http/navigation"
-	plugin "github.com/flarehotspot/sdk/api/plugin"
-	// "github.com/flarehotspot/sdk/utils/translate"
+	// "sdk/api/http/navigation"
+	plugin "sdk/api/plugin"
+	// "sdk/utils/translate"
 )
 
 func SetAdminNavs(api plugin.PluginApi) {
