@@ -10,5 +10,10 @@ import (
 func main() {}
 
 func Init(api plugin.PluginApi) {
+	if err := api.Migrate(); err != nil {
+		api.Logger().Error(err.Error())
+		return
+	}
+
 	app.Init(api)
 }
