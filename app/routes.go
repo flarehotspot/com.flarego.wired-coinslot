@@ -1,20 +1,19 @@
 package app
 
 import (
+	sdkapi "sdk/api"
+
 	"com.flarego.wired-coinslot/app/handlers"
-	"com.flarego.wired-coinslot/app/models"
-	sdkhttp "sdk/api/http"
-	plugin "sdk/api/plugin"
 )
 
-func SetRoutes(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
+func SetRoutes(api sdkapi.IPluginApi) {
 	rtr := api.Http().HttpRouter().PluginRouter()
-	insertCoinHandler := handlers.InsertCoinHandler(api, mdl)
-	paymentReceivedHandler := handlers.PaymentReceivedHandler(api, mdl)
-	donePaymentHandler := handlers.DonePayingHandler(api, mdl)
+	insertCoinHandler := handlers.InsertCoinHandler(api)
+	paymentReceivedHandler := handlers.PaymentReceivedHandler(api)
+	donePaymentHandler := handlers.DonePayingHandler(api)
 
-	rtr.Group("/payments", func(subrouter sdkhttp.HttpRouterInstance) {
-        subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payment.insert_coin")
+	rtr.Group("/payments", func(subrouter sdkapi.IHttpRouterInstance) {
+		subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payment:insert_coin")
 		subrouter.Post("/received/{id}/{amount}", paymentReceivedHandler).Name("payment:received")
 		subrouter.Post("/done", donePaymentHandler).Name("payment:done")
 	})

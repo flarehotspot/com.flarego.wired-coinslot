@@ -2,3 +2,4 @@
 .DS_Store
 /node_modules
 main_mono.go
+/resources/assets/dist

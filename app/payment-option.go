@@ -1,16 +1,14 @@
 package app
 
-import (
-	sdkpayments "sdk/api/payments"
-)
+import sdkapi "sdk/api"
 
-func NewPaymentOption(opt sdkpayments.PaymentOpt) *PaymentOption {
+func NewPaymentOption(opt sdkapi.PaymentOption) *PaymentOption {
 	return &PaymentOption{
 		opt: opt,
 	}
 }
 
 type PaymentOption struct {
-	opt   sdkpayments.PaymentOpt
+	opt   sdkapi.PaymentOption
 	devId int64
 }

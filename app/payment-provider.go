@@ -1,68 +1,59 @@
 package app
 
 import (
-	"log"
+	"fmt"
 	"net/http"
-	"strconv"
 
-	"com.flarego.wired-coinslot/app/models"
-	connmgr "sdk/api/connmgr"
-	payments "sdk/api/payments"
-	plugin "sdk/api/plugin"
+	sdkapi "sdk/api"
+
+	"com.flarego.wired-coinslot/app/config"
 )
 
-func NewPaymentProvider(api plugin.PluginApi, mdl *models.WiredCoinslotModel) {
-	provider := &PaymentProvider{
-		name:  "Wired Coinslots",
-		api:   api,
-		model: mdl,
+func NewPaymentProvider(api sdkapi.IPluginApi) *PaymentProvider {
+	return &PaymentProvider{
+		name: "Wired Coinslots",
+		api:  api,
 	}
-
-	api.Payments().NewPaymentProvider(provider)
 }
 
 type PaymentProvider struct {
-	name  string
-	api   plugin.PluginApi
-	model *models.WiredCoinslotModel
+	name string
+	api  sdkapi.IPluginApi
 }
 
 func (self *PaymentProvider) Name() string {
 	return self.name
 }
 
-func (self *PaymentProvider) GetOpts() []payments.PaymentOpt {
-	opts := []payments.PaymentOpt{}
-	coinslots, err := self.model.All()
+func (self *PaymentProvider) OptionsFactory(r *http.Request) []sdkapi.PaymentOption {
+	wiredCoinslots, err := config.FindAll(self.api)
 	if err != nil {
-		log.Println(err)
-		return nil
+		fmt.Println("Error in finding all coinslots: ", err)
+		return []sdkapi.PaymentOption{}
 	}
 
-	for _, c := range coinslots {
-		id := strconv.Itoa(int(c.Id()))
-		opt := payments.PaymentOpt{
-			OptName:      c.Name(),
-			VueRouteName: "insert-coin",
-			RouteParams:  map[string]string{"id": id},
+	opts := make([]sdkapi.PaymentOption, len(wiredCoinslots))
+
+	for _, entry := range wiredCoinslots {
+		opt := sdkapi.PaymentOption{
+			Name:      entry.Name,
+			RouteName: "payment:insert_coin",
+			Params:    map[string]string{"id": entry.ID},
 		}
+
 		opts = append(opts, opt)
 	}
 
 	return opts
 }
 
-func (self *PaymentProvider) PaymentOpts(clnt connmgr.ClientDevice) []payments.PaymentOpt {
-	return self.GetOpts()
-}
-
-func (self *PaymentProvider) FindOpt(clnt connmgr.ClientDevice) (opt payments.PaymentOpt, ok bool) {
+func (self *PaymentProvider) GetPaymentOption(r *http.Request) (opt sdkapi.PaymentOption, ok bool) {
 	// for _, opt := range self.GetOpts() {
 	// if opt.devId == clnt.Id() {
 	// 	return opt.opt, true
 	// }
 	// }
-	return payments.PaymentOpt{}, false
+	return sdkapi.PaymentOption{}, false
 }
 
 func (self *PaymentProvider) PaymentReceived(w http.ResponseWriter, r *http.Request) {

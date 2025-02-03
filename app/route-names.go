@@ -1,7 +1,7 @@
 package app
 
-import "sdk/api/http"
+// import "sdk/api/http"
 
-const (
-	RoutePaymentReceived sdkhttp.PluginRouteName = "payment.received"
-)
+// const (
+// 	RoutePaymentReceived sdkhttp.PluginRouteName = "payment.received"
+// )
