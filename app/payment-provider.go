@@ -1,9 +1,12 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 
 	sdkapi "sdk/api"
+
+	"com.flarego.wired-coinslot/app/config"
 )
 
 func NewPaymentProvider(api sdkapi.IPluginApi) *PaymentProvider {
@@ -23,38 +26,23 @@ func (self *PaymentProvider) Name() string {
 }
 
 func (self *PaymentProvider) OptionsFactory(r *http.Request) []sdkapi.PaymentOption {
-	return []sdkapi.PaymentOption{
-		{
-			Name:        "Coinslot 1",
-			RouteName:   "payments:insert_coin",
-			RouteParams: map[string]string{"id": "1"},
-		},
+	wiredCoinslots, err := config.FindAll(self.api)
+	if err != nil {
+		fmt.Println("Error in finding all coinslots: ", err)
+		return nil
 	}
 
-	// wiredCoinslots, err := config.FindAll(self.api)
-	// if err != nil {
-	// 	fmt.Println("Error in finding all coinslots: ", err)
-	// 	return []sdkapi.PaymentOption{
-	// 		{
-	// 			Name:      "Coinslot 1",
-	// 			RouteName: "payment:insert_coin",
-	// 		},
-	// 	}
-	// }
+	opts := make([]sdkapi.PaymentOption, len(wiredCoinslots))
 
-	// opts := make([]sdkapi.PaymentOption, len(wiredCoinslots))
+	for i, c := range wiredCoinslots {
+		opts[i] = sdkapi.PaymentOption{
+			Name:        c.Name,
+			RouteName:   "payments.insert_coin",
+			RouteParams: map[string]string{"id": c.ID},
+		}
+	}
 
-	// for _, entry := range wiredCoinslots {
-	// 	opt := sdkapi.PaymentOption{
-	// 		Name:        entry.Name,
-	// 		RouteName:   "payment:insert_coin",
-	// 		RouteParams: map[string]string{"id": entry.ID},
-	// 	}
-
-	// 	opts = append(opts, opt)
-	// }
-
-	// return opts
+	return opts
 }
 
 func (self *PaymentProvider) GetPaymentOption(r *http.Request) (opt sdkapi.PaymentOption, ok bool) {

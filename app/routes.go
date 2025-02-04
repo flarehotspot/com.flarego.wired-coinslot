@@ -13,9 +13,9 @@ func SetRoutes(api sdkapi.IPluginApi) {
 	donePaymentHandler := handlers.DonePayingHandler(api)
 
 	rtr.Group("/payments", func(subrouter sdkapi.IHttpRouterInstance) {
-		subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payments:insert_coin")
-		subrouter.Post("/received/{id}/{amount}", paymentReceivedHandler).Name("payments:received")
-		subrouter.Post("/done", donePaymentHandler).Name("payment:done")
+		subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payments.insert_coin")
+		subrouter.Post("/received/{id}/{amount}", paymentReceivedHandler).Name("payments.received")
+		subrouter.Post("/done", donePaymentHandler).Name("payment.done")
 	})
 
 }

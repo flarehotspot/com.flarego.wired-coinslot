@@ -1,14 +1,30 @@
 package config
 
 import (
+	"errors"
 	"fmt"
-	"log"
+	"os"
+	"path/filepath"
 	sdkapi "sdk/api"
 
 	sdkutils "github.com/flarehotspot/sdk-utils"
 	"github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const (
+	WiredCoinslotsPrefix string = "wired_coinslots"
+)
+
+func InitWiredCoinslots(api sdkapi.IPluginApi) {
+	_, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
+	if errors.Is(err, os.ErrNotExist) {
+		mainCoinslot := NewWiredCoinslot(api, "Main Vendo")
+		if err := mainCoinslot.Save(); err != nil {
+			api.Logger().Error(err.Error())
+		}
+	}
+}
 
 func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
 	return &WiredCoinslot{
@@ -19,11 +35,11 @@ func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
 }
 
 func FindAll(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
-	coinslotEntries, err := api.Config().Plugin().List("wired_coinslot")
+	coinslotEntries, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
+
 	coinslots := make([]*WiredCoinslot, len(coinslotEntries))
 	for i, entry := range coinslotEntries {
 		b, err := api.Config().Plugin().Read(entry.Path)
@@ -48,7 +64,7 @@ func FindAll(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 
 func FindWiredCoinslot(api sdkapi.IPluginApi, id string) (*WiredCoinslot, error) {
 	var c WiredCoinslot
-	b, err := api.Config().Plugin().Read("wired_coinslot/" + id)
+	b, err := api.Config().Plugin().Read(filepath.Join(WiredCoinslotsPrefix, id))
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +84,10 @@ type WiredCoinslot struct {
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
-	return "wired_coinslot/" + c.ID
+	return filepath.Join(WiredCoinslotsPrefix, c.ID)
 }
 
-func (c *WiredCoinslot) Update() error {
+func (c *WiredCoinslot) Save() error {
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err

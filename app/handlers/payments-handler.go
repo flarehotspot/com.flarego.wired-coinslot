@@ -45,7 +45,7 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		clntID := clnt.Id()
 		c.DeviceID = &clntID
 
-		if err := c.Update(); err != nil {
+		if err := c.Save(); err != nil {
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
