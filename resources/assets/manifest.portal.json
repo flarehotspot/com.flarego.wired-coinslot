@@ -1,0 +1,8 @@
+{
+  "global.js": [
+    "./js/plugins/insert-coin.js"
+  ],
+  "pages/insert-coin.js": [
+    "./portal/js/insert-coin-page.js"
+  ]
+}

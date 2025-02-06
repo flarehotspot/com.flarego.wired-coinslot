@@ -1,4 +1,4 @@
-package main
+package src
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	sdkapi "sdk/api"
 	sdkplugin "sdk/api"
+
+	"com.flarego.wired-coinslot/resources/views"
 )
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
@@ -54,7 +56,15 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		w.Write([]byte(fmt.Sprintf("Show purchase: %+v", purchase)))
+		insertCoinPage := views.InsertCoinPage(purchase)
+		res.PortalView(w, r, sdkplugin.ViewPage{
+			Assets: sdkplugin.ViewAssets{
+				JsFile: "pages/insert-coin.js",
+			},
+			PageContent: insertCoinPage,
+		})
+
+		// w.Write([]byte(fmt.Sprintf("Show purchase: %+v", purchase)))
 		// ShowPurchase(w, res, purchase)
 	}
 }

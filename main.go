@@ -1,21 +1,21 @@
-//go:build !mono
-
 package main
 
 import (
 	sdkapi "sdk/api"
+
+	"com.flarego.wired-coinslot/src"
 )
 
 func main() {}
 
 func Init(api sdkapi.IPluginApi) {
 	// Set default wired coinslots if not exists
-	InitWiredCoinslots(api)
+	src.InitWiredCoinslots(api)
 
-	// Setup routes
-	SetRoutes(api)
+	// // Setup routes
+	src.SetRoutes(api)
 
-	// Register the payment provider
-	provider := NewPaymentProvider(api)
+	// // Register the payment provider
+	provider := src.NewPaymentProvider(api)
 	api.Payments().NewPaymentProvider(provider)
 }
