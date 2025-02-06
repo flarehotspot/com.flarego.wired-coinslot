@@ -1,12 +1,10 @@
-package app
+package main
 
 import (
 	"fmt"
 	"net/http"
 
 	sdkapi "sdk/api"
-
-	"com.flarego.wired-coinslot/app/config"
 )
 
 func NewPaymentProvider(api sdkapi.IPluginApi) *PaymentProvider {
@@ -26,7 +24,7 @@ func (self *PaymentProvider) Name() string {
 }
 
 func (self *PaymentProvider) OptionsFactory(r *http.Request) []sdkapi.PaymentOption {
-	wiredCoinslots, err := config.FindAll(self.api)
+	wiredCoinslots, err := GetAllWiredCoinslots(self.api)
 	if err != nil {
 		fmt.Println("Error in finding all coinslots: ", err)
 		return nil
@@ -38,7 +36,7 @@ func (self *PaymentProvider) OptionsFactory(r *http.Request) []sdkapi.PaymentOpt
 		opts[i] = sdkapi.PaymentOption{
 			Name:        c.Name,
 			RouteName:   "payments.insert_coin",
-			RouteParams: map[string]string{"id": c.ID},
+			RouteParams: map[string]string{"id": c.Id},
 		}
 	}
 

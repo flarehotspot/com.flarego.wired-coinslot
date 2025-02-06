@@ -4,12 +4,18 @@ package main
 
 import (
 	sdkapi "sdk/api"
-
-	"com.flarego.wired-coinslot/app"
 )
 
 func main() {}
 
 func Init(api sdkapi.IPluginApi) {
-	app.Init(api)
+	// Set default wired coinslots if not exists
+	InitWiredCoinslots(api)
+
+	// Setup routes
+	SetRoutes(api)
+
+	// Register the payment provider
+	provider := NewPaymentProvider(api)
+	api.Payments().NewPaymentProvider(provider)
 }

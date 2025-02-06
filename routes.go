@@ -1,16 +1,14 @@
-package app
+package main
 
 import (
 	sdkapi "sdk/api"
-
-	"com.flarego.wired-coinslot/app/handlers"
 )
 
 func SetRoutes(api sdkapi.IPluginApi) {
 	rtr := api.Http().HttpRouter().PluginRouter()
-	insertCoinHandler := handlers.InsertCoinHandler(api)
-	paymentReceivedHandler := handlers.PaymentReceivedHandler(api)
-	donePaymentHandler := handlers.DonePayingHandler(api)
+	insertCoinHandler := InsertCoinHandler(api)
+	paymentReceivedHandler := PaymentReceivedHandler(api)
+	donePaymentHandler := DonePayingHandler(api)
 
 	rtr.Group("/payments", func(subrouter sdkapi.IHttpRouterInstance) {
 		subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payments.insert_coin")

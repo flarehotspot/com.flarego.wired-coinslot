@@ -1,4 +1,4 @@
-package navs
+package main
 
 import (
 	// "net/http"

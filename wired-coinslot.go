@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"errors"
@@ -29,12 +29,12 @@ func InitWiredCoinslots(api sdkapi.IPluginApi) {
 func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
 	return &WiredCoinslot{
 		api:  api,
-		ID:   sdkutils.RandomStr(16),
+		Id:   sdkutils.RandomStr(16),
 		Name: name,
 	}
 }
 
-func FindAll(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
+func GetAllWiredCoinslots(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 	coinslotEntries, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,6 @@ func FindAll(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 		}
 
 		c.api = api
-
 		coinslots[i] = &c
 	}
 
@@ -78,13 +77,13 @@ func FindWiredCoinslot(api sdkapi.IPluginApi, id string) (*WiredCoinslot, error)
 
 type WiredCoinslot struct {
 	api      sdkapi.IPluginApi
-	ID       string
+	Id       string
 	Name     string
 	DeviceID *pgtype.UUID
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
-	return filepath.Join(WiredCoinslotsPrefix, c.ID)
+	return filepath.Join(WiredCoinslotsPrefix, c.Id)
 }
 
 func (c *WiredCoinslot) Save() error {

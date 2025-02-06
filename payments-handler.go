@@ -1,4 +1,4 @@
-package handlers
+package main
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 
 	sdkapi "sdk/api"
 	sdkplugin "sdk/api"
-
-	"com.flarego.wired-coinslot/app/config"
 )
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
@@ -16,6 +14,7 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 
 		purchase, err := api.Payments().GetPurchaseRequest(r)
 		if err != nil {
+			fmt.Println("GetPurchaseRequest error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
@@ -23,20 +22,23 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 
 		clnt, err := api.Http().GetClientDevice(r)
 		if err != nil {
+			fmt.Println("GetClientDevice error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		coinslotID := api.Http().MuxVars(r)["id"]
-		c, err := config.FindWiredCoinslot(api, coinslotID)
+		c, err := FindWiredCoinslot(api, coinslotID)
 		if err != nil {
+			fmt.Println("FindWiredCoinslot error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		if c.DeviceID != nil && *c.DeviceID != clnt.Id() {
+			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			res.Redirect(w, r, "portal:index")
 			return
@@ -46,6 +48,7 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		c.DeviceID = &clntID
 
 		if err := c.Save(); err != nil {
+			fmt.Println("WiredCoinslot Save error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
