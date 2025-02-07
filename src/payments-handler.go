@@ -10,6 +10,7 @@ import (
 	sdkplugin "sdk/api"
 
 	"com.flarego.wired-coinslot/resources/views"
+	sdkutils "github.com/flarehotspot/sdk-utils"
 )
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
@@ -32,7 +33,9 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
+		clntID := sdkutils.PgUuidToString(clnt.Id())
 		coinslotID := api.Http().MuxVars(r)["id"]
+
 		c, err := FindWiredCoinslot(api, coinslotID)
 		if err != nil {
 			fmt.Println("FindWiredCoinslot error:", err)
@@ -41,16 +44,14 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if c.DeviceID != nil && *c.DeviceID != clnt.Id() {
+		if c.DeviceID != nil && *c.DeviceID != clntID {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		clntID := clnt.Id()
 		c.DeviceID = &clntID
-
 		if err := c.Save(); err != nil {
 			fmt.Println("WiredCoinslot Save error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
@@ -100,49 +101,39 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		state, err := purchase.State()
-		if err != nil {
-			res.Error(w, r, err, 500)
-			return
-		}
-
-		total := state.TotalPayment
-
-		v := views.PaymentReceivedPartial(total)
+		v := views.PaymentReceivedPartial(purchase)
 		v.Render(r.Context(), w)
 	}
 }
 
 func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// res := api.Http().VueResponse()
-		// clnt, err := api.Http().GetClientDevice(r)
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		res := api.Http().HttpResponse()
+		clnt, err := api.Http().GetClientDevice(r)
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// c, err := mdl.FindByClientId(clnt.Id())
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		c, err := FindWiredCoinslotByDevice(api, clnt.Id())
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// purchase, err := api.Payments().GetPendingPurchase(r)
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		purchase, err := api.Payments().GetPurchaseRequest(r)
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// c.SetCurrentDeviceId(0)
+		c.DeviceID = nil
+		if err = c.Save(); err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// err = c.Update(r.Context())
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
-
-		// purchase.Execute(w)
+		purchase.Execute(w, r)
 	}
 }
 

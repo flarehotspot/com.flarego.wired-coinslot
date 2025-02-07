@@ -76,11 +76,29 @@ func FindWiredCoinslot(api sdkapi.IPluginApi, id string) (*WiredCoinslot, error)
 	return &c, nil
 }
 
+func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*WiredCoinslot, error) {
+	coinslots, err := GetAllWiredCoinslots(api)
+	if err != nil {
+		return nil, err
+	}
+
+	idstr := sdkutils.PgUuidToString(deviceID)
+	fmt.Println("FindWiredCoinslotByDevice idstr: ", idstr)
+
+	for _, c := range coinslots {
+		if c.DeviceID != nil && *c.DeviceID == idstr {
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("No coinslot found for device ID: %s", sdkutils.PgUuidToString(deviceID))
+}
+
 type WiredCoinslot struct {
 	api      sdkapi.IPluginApi
 	Id       string
 	Name     string
-	DeviceID *pgtype.UUID
+	DeviceID *string
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
