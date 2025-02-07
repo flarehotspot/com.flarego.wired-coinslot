@@ -1,9 +1,22 @@
 package views
 
-import sdkapi "sdk/api"
+import (
+	"fmt"
+	sdkapi "sdk/api"
+)
 
-templ InsertCoinPage(purchase sdkapi.IPurchaseRequest) {
+templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
 	<h1>Insert Coin</h1>
 	<hr/>
-	<button id="insert-coin-btn" type="button">Mock Insert Coin</button>
+	<button
+		id="insert-coin-btn"
+		type="button"
+		hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") }
+		hx-target="#payment-received"
+	>Mock Insert Coin</button>
+	@PaymentReceivedPartial(0)
+}
+
+templ PaymentReceivedPartial(amount float64) {
+	<p id="payment-received">Payment Recieved: { fmt.Sprintf("%.2f", amount) }</p>
 }

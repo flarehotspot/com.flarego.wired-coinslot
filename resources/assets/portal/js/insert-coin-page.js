@@ -1,3 +1,3 @@
-(function($) {
-  $('#insert-coin-btn').insertCoinBtn();
-})(window.$)
+// (function($) {
+//   $('#insert-coin-btn').insertCoinBtn();
+// })(window.$)

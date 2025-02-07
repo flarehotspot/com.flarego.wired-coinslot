@@ -2,7 +2,9 @@ package src
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 
 	sdkapi "sdk/api"
 	sdkplugin "sdk/api"
@@ -42,7 +44,7 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		if c.DeviceID != nil && *c.DeviceID != clnt.Id() {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
-			res.Redirect(w, r, "portal:index")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
@@ -56,59 +58,58 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		insertCoinPage := views.InsertCoinPage(purchase)
+		insertCoinPage := views.InsertCoinPage(api, purchase, coinslotID)
 		res.PortalView(w, r, sdkplugin.ViewPage{
 			Assets: sdkplugin.ViewAssets{
 				JsFile: "pages/insert-coin.js",
 			},
 			PageContent: insertCoinPage,
 		})
-
-		// w.Write([]byte(fmt.Sprintf("Show purchase: %+v", purchase)))
-		// ShowPurchase(w, res, purchase)
 	}
 }
 
 func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// vars := api.Http().MuxVars(r)
-		// idstr := vars["id"]
-		// amountstr := vars["amount"]
-		// res := api.Http().VueResponse()
+		vars := api.Http().MuxVars(r)
+		idstr := vars["id"]
+		amountstr := vars["amount"]
+		res := api.Http().HttpResponse()
 
-		// id, err := strconv.ParseInt(idstr, 10, 64)
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		amount, err := strconv.ParseFloat(amountstr, 64)
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// amount, err := strconv.ParseFloat(amountstr, 64)
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		purchase, err := api.Payments().GetPurchaseRequest(r)
+		if err != nil {
+			log.Println("GetPendingPurchase error:", err)
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// purchase, err := api.Payments().GetPendingPurchase(r)
-		// if err != nil {
-		// 	log.Println("GetPendingPurchase error:", err)
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		c, err := FindWiredCoinslot(api, idstr)
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// c, err := mdl.Find(id)
-		// if err != nil {
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		if err := purchase.CreatePayment(amount, c.Name); err != nil {
+			log.Println("CreatePayment error:", err)
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// if err := purchase.CreatePayment(amount, c.Name()); err != nil {
-		// 	log.Println("CreatePayment error:", err)
-		// 	res.Error(w, err.Error(), 500)
-		// 	return
-		// }
+		state, err := purchase.State()
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
 
-		// res.SetFlashMsg("success", "Payment received")
-		// ShowPurchase(w, res, purchase)
+		total := state.TotalPayment
+
+		v := views.PaymentReceivedPartial(total)
+		v.Render(r.Context(), w)
 	}
 }
 
