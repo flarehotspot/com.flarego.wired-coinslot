@@ -8,11 +8,10 @@ import (
 templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
 	<h1>Insert Coin</h1>
 	<hr/>
-	<button type="button" hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") } hx-target="#payment-received">Mock Insert Coin</button>
-	<button type="button" hx-post={ api.Http().Helpers().UrlForRoute("payments.done") } hx-trigger="click">
-		Done
-		Payment
-	</button>
+	<button class="btn btn-default" type="button" hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") } hx-target="#payment-received">Mock Insert Coin</button>
+	<a class="btn btn-success" href={ templ.SafeURL(api.Http().Helpers().UrlForRoute("payments.done")) }>
+		Done Payment
+	</a>
 	@PaymentReceivedPartial(purchase)
 }
 

@@ -136,16 +136,3 @@ func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		purchase.Execute(w, r)
 	}
 }
-
-// func ShowPurchase(w http.ResponseWriter, res sdkhttp.VueResponse, purchase sdkpayments.Purchase) {
-// 	state, err := purchase.State()
-// 	if err != nil {
-// 		res.SetFlashMsg("error", err.Error())
-// 		return
-// 	}
-// 	data := map[string]interface{}{
-// 		"purchase_name":  purchase.Name(),
-// 		"purchase_state": state,
-// 	}
-// 	res.Json(w, data, 200)
-// }
