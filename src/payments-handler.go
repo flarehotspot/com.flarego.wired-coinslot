@@ -15,7 +15,7 @@ import (
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res := api.Http().HttpResponse()
+		res := api.Http().Response()
 
 		purchase, err := api.Payments().GetPurchaseRequest(r)
 		if err != nil {
@@ -74,7 +74,7 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		vars := api.Http().MuxVars(r)
 		idstr := vars["id"]
 		amountstr := vars["amount"]
-		res := api.Http().HttpResponse()
+		res := api.Http().Response()
 
 		amount, err := strconv.ParseFloat(amountstr, 64)
 		if err != nil {
@@ -108,7 +108,7 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 
 func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res := api.Http().HttpResponse()
+		res := api.Http().Response()
 		clnt, err := api.Http().GetClientDevice(r)
 		if err != nil {
 			res.Error(w, r, err, 500)

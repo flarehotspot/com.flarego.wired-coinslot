@@ -5,7 +5,7 @@ import (
 )
 
 func SetRoutes(api sdkapi.IPluginApi) {
-	rtr := api.Http().HttpRouter().PluginRouter()
+	rtr := api.Http().Router().PluginRouter()
 	insertCoinHandler := InsertCoinHandler(api)
 	paymentReceivedHandler := PaymentReceivedHandler(api)
 	donePaymentHandler := DonePayingHandler(api)
