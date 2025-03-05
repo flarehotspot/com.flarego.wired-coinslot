@@ -44,7 +44,8 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if c.GetDeviceID() != clntID {
+		devID := c.GetDeviceID()
+		if devID != "" && devID != clntID {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
