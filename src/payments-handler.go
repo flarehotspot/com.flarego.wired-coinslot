@@ -44,14 +44,14 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if c.DeviceID != nil && *c.DeviceID != clntID {
+		if c.DeviceId() != clntID {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		c.DeviceID = &clntID
+		c.SetDeviceID(&clntID)
 		if err := c.Save(); err != nil {
 			fmt.Println("WiredCoinslot Save error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
@@ -59,13 +59,25 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		insertCoinPage := views.InsertCoinPage(api, purchase, coinslotID)
+		ctx := r.Context()
+		tx, err := api.SqlDb().Begin(ctx)
+		if err != nil {
+			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		insertCoinPage := views.InsertCoinPage(tx, ctx, api, purchase, coinslotID)
 		res.PortalView(w, r, sdkplugin.ViewPage{
 			Assets: sdkplugin.ViewAssets{
 				JsFile: "pages/insert-coin.js",
 			},
 			PageContent: insertCoinPage,
 		})
+
+		if err := tx.Commit(ctx); err != nil {
+			api.Logger().Error(err.Error())
+		}
 	}
 }
 
@@ -95,14 +107,30 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if err := purchase.CreatePayment(amount, c.Name); err != nil {
+		ctx := r.Context()
+		tx, err := api.SqlDb().Begin(ctx)
+		if err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
+
+		if err := purchase.CreatePayment(tx, ctx, amount, c.Name()); err != nil {
 			log.Println("CreatePayment error:", err)
 			res.Error(w, r, err, 500)
 			return
 		}
 
-		v := views.PaymentReceivedPartial(purchase)
+		if err := tx.Commit(ctx); err != nil {
+			res.Error(w, r, err, 500)
+			return
+		}
+
+		v := views.PaymentReceivedPartial(tx, ctx, purchase)
 		v.Render(r.Context(), w)
+
+		if err := tx.Commit(ctx); err != nil {
+			api.Logger().Error(err.Error())
+		}
 	}
 }
 
@@ -127,7 +155,7 @@ func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		c.DeviceID = nil
+		c.SetDeviceID(nil)
 		if err = c.Save(); err != nil {
 			res.Error(w, r, err, 500)
 			return

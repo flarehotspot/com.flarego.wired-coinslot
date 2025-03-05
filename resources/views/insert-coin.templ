@@ -3,22 +3,24 @@ package views
 import (
 	"fmt"
 	sdkapi "sdk/api"
+	"context"
+	"github.com/jackc/pgx/v5"
 )
 
-templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
+templ InsertCoinPage(tx pgx.Tx, ctx context.Context,api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
 	<h1>Insert Coin</h1>
 	<hr/>
 	<button class="btn btn-default" type="button" hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") } hx-target="#payment-received">Mock Insert Coin</button>
 	<a class="btn btn-success" href={ templ.SafeURL(api.Http().Helpers().UrlForRoute("payments.done")) }>
 		Done Payment
 	</a>
-	@PaymentReceivedPartial(purchase)
+	@PaymentReceivedPartial(tx, ctx, purchase)
 }
 
-templ PaymentReceivedPartial(purchase sdkapi.IPurchaseRequest) {
+templ PaymentReceivedPartial(tx pgx.Tx,ctx context.Context,purchase sdkapi.IPurchaseRequest) {
 	{{
         var amount float64
-        state, err := purchase.State()
+        state, err := purchase.State(tx, ctx)
         if err != nil {
             amount = 0
         } else {

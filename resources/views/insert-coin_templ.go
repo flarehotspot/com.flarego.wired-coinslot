@@ -9,11 +9,13 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	sdkapi "sdk/api"
 )
 
-func InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) templ.Component {
+func InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -41,7 +43,7 @@ func InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coi
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 11, Col: 143}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 13, Col: 143}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -60,7 +62,7 @@ func InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coi
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PaymentReceivedPartial(purchase).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = PaymentReceivedPartial(tx, ctx, purchase).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -68,7 +70,7 @@ func InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coi
 	})
 }
 
-func PaymentReceivedPartial(purchase sdkapi.IPurchaseRequest) templ.Component {
+func PaymentReceivedPartial(tx pgx.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -91,7 +93,7 @@ func PaymentReceivedPartial(purchase sdkapi.IPurchaseRequest) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 
 		var amount float64
-		state, err := purchase.State()
+		state, err := purchase.State(tx, ctx)
 		if err != nil {
 			amount = 0
 		} else {
@@ -104,7 +106,7 @@ func PaymentReceivedPartial(purchase sdkapi.IPurchaseRequest) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%.2f", amount))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 28, Col: 73}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 30, Col: 73}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {

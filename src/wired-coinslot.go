@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	sdkapi "sdk/api"
+	"sync"
 
 	sdkutils "github.com/flarehotspot/sdk-utils"
 	"github.com/goccy/go-json"
@@ -30,8 +31,8 @@ func InitWiredCoinslots(api sdkapi.IPluginApi) {
 func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
 	return &WiredCoinslot{
 		api:  api,
-		Id:   sdkutils.RandomStr(16),
-		Name: name,
+		id:   sdkutils.RandomStr(16),
+		name: name,
 	}
 }
 
@@ -86,7 +87,7 @@ func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*Wi
 	fmt.Println("FindWiredCoinslotByDevice idstr: ", idstr)
 
 	for _, c := range coinslots {
-		if c.DeviceID != nil && *c.DeviceID == idstr {
+		if c.deviceID != nil && *c.deviceID == idstr {
 			return c, nil
 		}
 	}
@@ -95,17 +96,51 @@ func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*Wi
 }
 
 type WiredCoinslot struct {
+	mu       sync.RWMutex
 	api      sdkapi.IPluginApi
-	Id       string
-	Name     string
-	DeviceID *string
+	id       string
+	name     string
+	deviceID *string
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
-	return filepath.Join(WiredCoinslotsPrefix, c.Id)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return filepath.Join(WiredCoinslotsPrefix, c.id)
+}
+
+func (c *WiredCoinslot) Id() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.id
+}
+
+func (c *WiredCoinslot) Name() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.name
+}
+
+func (c *WiredCoinslot) DeviceId() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.deviceID == nil {
+		return ""
+	}
+	return *c.deviceID
+}
+
+func (c *WiredCoinslot) SetDeviceID(id *string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.deviceID = id
 }
 
 func (c *WiredCoinslot) Save() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err
