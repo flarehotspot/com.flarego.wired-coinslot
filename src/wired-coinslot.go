@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	sdkapi "sdk/api"
-	"sync"
 
 	sdkutils "github.com/flarehotspot/sdk-utils"
 	"github.com/goccy/go-json"
@@ -96,7 +95,6 @@ func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*Wi
 }
 
 type WiredCoinslot struct {
-	mu       sync.RWMutex
 	api      sdkapi.IPluginApi
 	ID       string
 	Name     string
@@ -104,27 +102,18 @@ type WiredCoinslot struct {
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	return filepath.Join(WiredCoinslotsPrefix, c.ID)
 }
 
 func (c *WiredCoinslot) GetID() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
 	return c.ID
 }
 
 func (c *WiredCoinslot) GetName() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
 	return c.Name
 }
 
 func (c *WiredCoinslot) GetDeviceID() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
 	if c.DeviceID == nil {
 		return ""
 	}
@@ -132,15 +121,10 @@ func (c *WiredCoinslot) GetDeviceID() string {
 }
 
 func (c *WiredCoinslot) SetDeviceID(id *string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.DeviceID = id
 }
 
 func (c *WiredCoinslot) Save() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err

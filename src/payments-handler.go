@@ -121,11 +121,6 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if err := tx.Commit(ctx); err != nil {
-			res.Error(w, r, err, 500)
-			return
-		}
-
 		v := views.PaymentReceivedPartial(tx, ctx, purchase)
 		v.Render(r.Context(), w)
 
