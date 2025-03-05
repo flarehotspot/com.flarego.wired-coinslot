@@ -31,8 +31,8 @@ func InitWiredCoinslots(api sdkapi.IPluginApi) {
 func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
 	return &WiredCoinslot{
 		api:  api,
-		id:   sdkutils.RandomStr(16),
-		name: name,
+		ID:   sdkutils.RandomStr(16),
+		Name: name,
 	}
 }
 
@@ -87,7 +87,7 @@ func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*Wi
 	fmt.Println("FindWiredCoinslotByDevice idstr: ", idstr)
 
 	for _, c := range coinslots {
-		if c.deviceID != nil && *c.deviceID == idstr {
+		if c.DeviceID != nil && *c.DeviceID == idstr {
 			return c, nil
 		}
 	}
@@ -98,43 +98,43 @@ func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*Wi
 type WiredCoinslot struct {
 	mu       sync.RWMutex
 	api      sdkapi.IPluginApi
-	id       string
-	name     string
-	deviceID *string
+	ID       string
+	Name     string
+	DeviceID *string
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	return filepath.Join(WiredCoinslotsPrefix, c.id)
+	return filepath.Join(WiredCoinslotsPrefix, c.ID)
 }
 
-func (c *WiredCoinslot) Id() string {
+func (c *WiredCoinslot) GetID() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.id
+	return c.ID
 }
 
-func (c *WiredCoinslot) Name() string {
+func (c *WiredCoinslot) GetName() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.name
+	return c.Name
 }
 
-func (c *WiredCoinslot) DeviceId() string {
+func (c *WiredCoinslot) GetDeviceID() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.deviceID == nil {
+	if c.DeviceID == nil {
 		return ""
 	}
-	return *c.deviceID
+	return *c.DeviceID
 }
 
 func (c *WiredCoinslot) SetDeviceID(id *string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.deviceID = id
+	c.DeviceID = id
 }
 
 func (c *WiredCoinslot) Save() error {

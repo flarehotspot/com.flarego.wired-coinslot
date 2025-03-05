@@ -44,7 +44,7 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if c.DeviceId() != clntID {
+		if c.GetDeviceID() != clntID {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -114,7 +114,7 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if err := purchase.CreatePayment(tx, ctx, amount, c.Name()); err != nil {
+		if err := purchase.CreatePayment(tx, ctx, amount, c.GetName()); err != nil {
 			log.Println("CreatePayment error:", err)
 			res.Error(w, r, err, 500)
 			return

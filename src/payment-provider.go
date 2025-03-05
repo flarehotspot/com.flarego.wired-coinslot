@@ -34,11 +34,13 @@ func (self *PaymentProvider) OptionsFactory(r *http.Request) []sdkapi.PaymentOpt
 
 	for i, c := range wiredCoinslots {
 		opts[i] = sdkapi.PaymentOption{
-			Name:        c.Name(),
+			Name:        c.GetName(),
 			RouteName:   "payments.insert_coin",
-			RouteParams: map[string]string{"id": c.Id()},
+			RouteParams: map[string]string{"id": c.GetID()},
 		}
 	}
+
+	fmt.Printf("WireCoinslots: %+v\n", opts)
 
 	return opts
 }
