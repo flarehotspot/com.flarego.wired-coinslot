@@ -10,7 +10,6 @@ import (
 	sdkplugin "sdk/api"
 
 	"com.flarego.wired-coinslot/resources/views"
-	sdkutils "github.com/flarehotspot/sdk-utils"
 )
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
@@ -33,10 +32,9 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		clntID := sdkutils.PgUuidToString(clnt.Id())
 		coinslotID := api.Http().MuxVars(r)["id"]
 
-		c, err := FindWiredCoinslot(api, coinslotID)
+		c, err := LoadWiredCoinslot(api, coinslotID)
 		if err != nil {
 			fmt.Println("FindWiredCoinslot error:", err)
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
@@ -44,21 +42,14 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		devID := c.GetDeviceID()
-		if devID != "" && devID != clntID {
+		if !c.CanBeUsedBy(clnt.Id()) {
 			fmt.Println("Somebody else is using this coinslot right now.")
 			res.FlashMsg(w, r, "Somebody else is using this coinslot right now.", sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		c.SetDeviceID(&clntID)
-		if err := c.Save(); err != nil {
-			fmt.Println("WiredCoinslot Save error:", err)
-			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
+		c.UseBy(clnt.Id())
 
 		ctx := r.Context()
 		tx, err := api.SqlDb().Begin(ctx)
@@ -102,7 +93,7 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		c, err := FindWiredCoinslot(api, idstr)
+		c, err := LoadWiredCoinslot(api, idstr)
 		if err != nil {
 			res.Error(w, r, err, 500)
 			return
@@ -139,20 +130,16 @@ func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		c, err := FindWiredCoinslotByDevice(api, clnt.Id())
+		c, err := FindUsedCoinslot(api, clnt.Id())
 		if err != nil {
 			res.Error(w, r, err, 500)
 			return
 		}
+
+		c.DoneUsing()
 
 		purchase, err := api.Payments().GetPurchaseRequest(r)
 		if err != nil {
-			res.Error(w, r, err, 500)
-			return
-		}
-
-		c.SetDeviceID(nil)
-		if err = c.Save(); err != nil {
 			res.Error(w, r, err, 500)
 			return
 		}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	sdkapi "sdk/api"
+	"sync"
 
 	sdkutils "github.com/flarehotspot/sdk-utils"
 	"github.com/goccy/go-json"
@@ -14,6 +15,10 @@ import (
 
 const (
 	WiredCoinslotsPrefix string = "wired_coinslots"
+)
+
+var (
+	UsedCoinslots sync.Map
 )
 
 func InitWiredCoinslots(api sdkapi.IPluginApi) {
@@ -62,9 +67,27 @@ func GetAllWiredCoinslots(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 	return coinslots, nil
 }
 
-func FindWiredCoinslot(api sdkapi.IPluginApi, id string) (*WiredCoinslot, error) {
+func FindUsedCoinslot(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*WiredCoinslot, error) {
+	deviceIDStr := sdkutils.PgUuidToString(deviceID)
+	var coinslotID string
+	UsedCoinslots.Range(func(key, value any) bool {
+		if value.(string) == deviceIDStr {
+			coinslotID = key.(string)
+			return false
+		}
+		return true
+	})
+
+	if coinslotID == "" {
+		return nil, nil
+	}
+
+	return LoadWiredCoinslot(api, coinslotID)
+}
+
+func LoadWiredCoinslot(api sdkapi.IPluginApi, coinslotID string) (*WiredCoinslot, error) {
 	var c WiredCoinslot
-	b, err := api.Config().Plugin().Read(filepath.Join(WiredCoinslotsPrefix, id))
+	b, err := api.Config().Plugin().Read(filepath.Join(WiredCoinslotsPrefix, coinslotID))
 	if err != nil {
 		return nil, err
 	}
@@ -76,29 +99,10 @@ func FindWiredCoinslot(api sdkapi.IPluginApi, id string) (*WiredCoinslot, error)
 	return &c, nil
 }
 
-func FindWiredCoinslotByDevice(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*WiredCoinslot, error) {
-	coinslots, err := GetAllWiredCoinslots(api)
-	if err != nil {
-		return nil, err
-	}
-
-	idstr := sdkutils.PgUuidToString(deviceID)
-	fmt.Println("FindWiredCoinslotByDevice idstr: ", idstr)
-
-	for _, c := range coinslots {
-		if c.DeviceID != nil && *c.DeviceID == idstr {
-			return c, nil
-		}
-	}
-
-	return nil, fmt.Errorf("No coinslot found for device ID: %s", sdkutils.PgUuidToString(deviceID))
-}
-
 type WiredCoinslot struct {
-	api      sdkapi.IPluginApi
-	ID       string
-	Name     string
-	DeviceID *string
+	api  sdkapi.IPluginApi
+	ID   string
+	Name string
 }
 
 func (c *WiredCoinslot) ConfigPath() string {
@@ -113,15 +117,24 @@ func (c *WiredCoinslot) GetName() string {
 	return c.Name
 }
 
-func (c *WiredCoinslot) GetDeviceID() string {
-	if c.DeviceID == nil {
-		return ""
+func (c *WiredCoinslot) CanBeUsedBy(deviceID pgtype.UUID) bool {
+	deviceIDStr := sdkutils.PgUuidToString(deviceID)
+	if v, ok := UsedCoinslots.Load(c.ID); ok {
+		if v.(string) == deviceIDStr {
+			return true
+		}
+		return false
 	}
-	return *c.DeviceID
+	return true
 }
 
-func (c *WiredCoinslot) SetDeviceID(id *string) {
-	c.DeviceID = id
+func (c *WiredCoinslot) UseBy(deviceID pgtype.UUID) {
+	deviceIDStr := sdkutils.PgUuidToString(deviceID)
+	UsedCoinslots.Store(c.ID, deviceIDStr)
+}
+
+func (c *WiredCoinslot) DoneUsing() {
+	UsedCoinslots.Delete(c.ID)
 }
 
 func (c *WiredCoinslot) Save() error {
