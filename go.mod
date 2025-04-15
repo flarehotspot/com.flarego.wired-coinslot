@@ -7,8 +7,8 @@ toolchain go1.21.13
 require (
 	github.com/a-h/templ v0.2.793
 	github.com/flarehotspot/sdk-utils v0.0.1
-	github.com/goccy/go-json v0.10.5
-	github.com/jackc/pgx/v5 v5.7.4
+	github.com/goccy/go-json v0.10.3
+	github.com/jackc/pgx/v5 v5.7.1
 )
 
 require (
