@@ -7,17 +7,24 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-templ InsertCoinPage(tx pgx.Tx, ctx context.Context,api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
-	<h1>Insert Coin</h1>
+templ InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
+	<h1>{ api.Translate("label", "insert_coin") }</h1>
 	<hr/>
-	<button class="btn btn-default" type="button" hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") } hx-target="#payment-received">Mock Insert Coin</button>
+	<button
+		class="btn btn-default"
+		type="button"
+	 	hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") }
+		hx-target="#payment-received"
+	>
+		{ api.Translate("label", "mock_insert_coin") }
+	</button>
 	<a class="btn btn-success" href={ templ.SafeURL(api.Http().Helpers().UrlForRoute("payments.done")) }>
-		Done Payment
+		{ api.Translate("label", "done_payment") }
 	</a>
-	@PaymentReceivedPartial(tx, ctx, purchase)
+	@PaymentReceivedPartial(api, tx, ctx, purchase)
 }
 
-templ PaymentReceivedPartial(tx pgx.Tx,ctx context.Context,purchase sdkapi.IPurchaseRequest) {
+templ PaymentReceivedPartial(api sdkapi.IPluginApi, tx pgx.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) {
 	{{
         var amount float64
         state, err := purchase.State(tx, ctx)
@@ -27,5 +34,5 @@ templ PaymentReceivedPartial(tx pgx.Tx,ctx context.Context,purchase sdkapi.IPurc
             amount = state.TotalPayment
         }
 	}}
-	<p id="payment-received">Payment Recieved: { fmt.Sprintf("%.2f", amount) }</p>
+	<p id="payment-received">{ api.Translate("label", "payment_received") }: { fmt.Sprintf("%.2f", amount) }</p>
 }

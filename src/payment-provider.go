@@ -9,7 +9,7 @@ import (
 
 func NewPaymentProvider(api sdkapi.IPluginApi) *PaymentProvider {
 	return &PaymentProvider{
-		name: "Wired Coinslots",
+		name: api.Translate("label", "wired_coinslots"),
 		api:  api,
 	}
 }
