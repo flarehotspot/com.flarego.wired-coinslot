@@ -136,6 +136,12 @@ func DonePayingHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 			return
 		}
 
+		if c == nil {
+			res.FlashMsg(w, r, api.Translate("error", "payment_failed"), sdkapi.FlashMsgError)
+			res.RedirectToPortal(w, r)
+			return
+		}
+
 		c.DoneUsing()
 
 		purchase, err := api.Payments().GetPurchaseRequest(r)
