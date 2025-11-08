@@ -10,7 +10,6 @@ import (
 
 	sdkutils "github.com/flarehotspot/sdk-utils"
 	"github.com/goccy/go-json"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const (
@@ -68,11 +67,10 @@ func GetAllWiredCoinslots(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 	return coinslots, nil
 }
 
-func FindUsedCoinslot(api sdkapi.IPluginApi, deviceID pgtype.UUID) (*WiredCoinslot, error) {
-	deviceIDStr := sdkutils.PgUuidToString(deviceID)
+func FindUsedCoinslot(api sdkapi.IPluginApi, deviceID int32) (*WiredCoinslot, error) {
 	var coinslotID string
 	UsedCoinslots.Range(func(key, value any) bool {
-		if value.(string) == deviceIDStr {
+		if value.(int32) == deviceID {
 			coinslotID = key.(string)
 			return false
 		}
@@ -118,10 +116,9 @@ func (c *WiredCoinslot) GetName() string {
 	return c.Name
 }
 
-func (c *WiredCoinslot) CanBeUsedBy(deviceID pgtype.UUID) bool {
-	deviceIDStr := sdkutils.PgUuidToString(deviceID)
+func (c *WiredCoinslot) CanBeUsedBy(deviceID int32) bool {
 	if v, ok := UsedCoinslots.Load(c.ID); ok {
-		if v.(string) == deviceIDStr {
+		if v.(int32) == deviceID {
 			return true
 		}
 		return false
@@ -129,9 +126,8 @@ func (c *WiredCoinslot) CanBeUsedBy(deviceID pgtype.UUID) bool {
 	return true
 }
 
-func (c *WiredCoinslot) UseBy(deviceID pgtype.UUID) {
-	deviceIDStr := sdkutils.PgUuidToString(deviceID)
-	UsedCoinslots.Store(c.ID, deviceIDStr)
+func (c *WiredCoinslot) UseBy(deviceID int32) {
+	UsedCoinslots.Store(c.ID, deviceID)
 }
 
 func (c *WiredCoinslot) DoneUsing() {

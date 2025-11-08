@@ -4,10 +4,10 @@ import (
 	"fmt"
 	sdkapi "sdk/api"
 	"context"
-	"github.com/jackc/pgx/v5"
+    "database/sql"
 )
 
-templ InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
+templ InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
 	<h1>{ api.Translate("label", "insert_coin") }</h1>
 	<hr/>
 	<button
@@ -24,7 +24,7 @@ templ InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purc
 	@PaymentReceivedPartial(api, tx, ctx, purchase)
 }
 
-templ PaymentReceivedPartial(api sdkapi.IPluginApi, tx pgx.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) {
+templ PaymentReceivedPartial(api sdkapi.IPluginApi, tx *sql.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) {
 	{{
         var amount float64
         state, err := purchase.State(tx, ctx)

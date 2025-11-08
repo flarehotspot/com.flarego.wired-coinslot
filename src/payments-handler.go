@@ -1,6 +1,7 @@
 package src
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 	sdkplugin "sdk/api"
 
 	"com.flarego.wired-coinslot/resources/views"
+	"github.com/a-h/templ"
+	sdkutils "github.com/flarehotspot/sdk-utils"
 )
 
 func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
@@ -52,24 +55,25 @@ func InsertCoinHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		c.UseBy(clnt.Id())
 
 		ctx := r.Context()
-		tx, err := api.SqlDb().Begin(ctx)
+
+		var insertCoinPage templ.Component
+
+		err = sdkutils.RunInTx(c.api.SqlDB(), ctx, func(tx *sql.Tx) error {
+			insertCoinPage = views.InsertCoinPage(tx, ctx, api, purchase, coinslotID)
+			return nil
+		})
 		if err != nil {
 			res.FlashMsg(w, r, err.Error(), sdkapi.FlashMsgError)
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		insertCoinPage := views.InsertCoinPage(tx, ctx, api, purchase, coinslotID)
 		res.PortalView(w, r, sdkplugin.ViewPage{
 			Assets: sdkplugin.ViewAssets{
 				JsFile: "pages/insert-coin.js",
 			},
 			PageContent: insertCoinPage,
 		})
-
-		if err := tx.Commit(ctx); err != nil {
-			api.Logger().Error(err.Error())
-		}
 	}
 }
 
@@ -100,23 +104,21 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		tx, err := api.SqlDb().Begin(ctx)
-		if err != nil {
-			res.Error(w, r, err, 500)
-			return
-		}
 
-		if err := purchase.CreatePayment(tx, ctx, amount, c.GetName()); err != nil {
+		err = sdkutils.RunInTx(c.api.SqlDB(), ctx, func(tx *sql.Tx) error {
+			if err := purchase.CreatePayment(tx, ctx, amount, c.GetName()); err != nil {
+				return err
+			}
+
+			v := views.PaymentReceivedPartial(api, tx, ctx, purchase)
+			v.Render(r.Context(), w)
+			return nil
+		})
+
+		if err != nil {
+			api.Logger().Error(err.Error())
 			log.Println("CreatePayment error:", err)
 			res.Error(w, r, err, 500)
-			return
-		}
-
-		v := views.PaymentReceivedPartial(api, tx, ctx, purchase)
-		v.Render(r.Context(), w)
-
-		if err := tx.Commit(ctx); err != nil {
-			api.Logger().Error(err.Error())
 		}
 	}
 }

@@ -10,12 +10,12 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 	sdkapi "sdk/api"
 )
 
-func InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) templ.Component {
+func InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -109,7 +109,7 @@ func InsertCoinPage(tx pgx.Tx, ctx context.Context, api sdkapi.IPluginApi, purch
 	})
 }
 
-func PaymentReceivedPartial(api sdkapi.IPluginApi, tx pgx.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) templ.Component {
+func PaymentReceivedPartial(api sdkapi.IPluginApi, tx *sql.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
