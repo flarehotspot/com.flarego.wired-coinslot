@@ -67,10 +67,10 @@ func GetAllWiredCoinslots(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 	return coinslots, nil
 }
 
-func FindUsedCoinslot(api sdkapi.IPluginApi, deviceID int32) (*WiredCoinslot, error) {
+func FindUsedCoinslot(api sdkapi.IPluginApi, deviceID int64) (*WiredCoinslot, error) {
 	var coinslotID string
 	UsedCoinslots.Range(func(key, value any) bool {
-		if value.(int32) == deviceID {
+		if value.(int64) == deviceID {
 			coinslotID = key.(string)
 			return false
 		}
@@ -116,9 +116,9 @@ func (c *WiredCoinslot) GetName() string {
 	return c.Name
 }
 
-func (c *WiredCoinslot) CanBeUsedBy(deviceID int32) bool {
+func (c *WiredCoinslot) CanBeUsedBy(deviceID int64) bool {
 	if v, ok := UsedCoinslots.Load(c.ID); ok {
-		if v.(int32) == deviceID {
+		if v.(int64) == deviceID {
 			return true
 		}
 		return false
@@ -126,7 +126,7 @@ func (c *WiredCoinslot) CanBeUsedBy(deviceID int32) bool {
 	return true
 }
 
-func (c *WiredCoinslot) UseBy(deviceID int32) {
+func (c *WiredCoinslot) UseBy(deviceID int64) {
 	UsedCoinslots.Store(c.ID, deviceID)
 }
 
