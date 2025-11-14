@@ -8,7 +8,7 @@ import (
 )
 
 templ InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
-	<h1>{ api.Translate("label", "insert_coin") }</h1>
+	<h1>{ api.Translate("label", "Insert Coin") }</h1>
 	<hr/>
 	<button
 		class="btn btn-default"
@@ -16,10 +16,10 @@ templ InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, pur
 	 	hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") }
 		hx-target="#payment-received"
 	>
-		{ api.Translate("label", "mock_insert_coin") }
+		{ api.Translate("label", "Mock Insert Coin") }
 	</button>
 	<a class="btn btn-success" href={ templ.SafeURL(api.Http().Helpers().UrlForRoute("payments.done")) }>
-		{ api.Translate("label", "done_payment") }
+		{ api.Translate("label", "Done Payment") }
 	</a>
 	@PaymentReceivedPartial(api, tx, ctx, purchase)
 }
@@ -34,5 +34,5 @@ templ PaymentReceivedPartial(api sdkapi.IPluginApi, tx *sql.Tx, ctx context.Cont
             amount = state.TotalPayment
         }
 	}}
-	<p id="payment-received">{ api.Translate("label", "payment_received") }: { fmt.Sprintf("%.2f", amount) }</p>
+	<p id="payment-received">{ api.Translate("label", "Payment Received") }: { fmt.Sprintf("%.2f", amount) }</p>
 }

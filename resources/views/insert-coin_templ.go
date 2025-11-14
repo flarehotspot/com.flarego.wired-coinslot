@@ -41,7 +41,7 @@ func InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purc
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "insert_coin"))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "Insert Coin"))
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 11, Col: 44}
 		}
@@ -67,7 +67,7 @@ func InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purc
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var4 string
-		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "mock_insert_coin"))
+		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "Mock Insert Coin"))
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 19, Col: 46}
 		}
@@ -89,7 +89,7 @@ func InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purc
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "done_payment"))
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "Done Payment"))
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 22, Col: 42}
 		}
@@ -143,7 +143,7 @@ func PaymentReceivedPartial(api sdkapi.IPluginApi, tx *sql.Tx, ctx context.Conte
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "payment_received"))
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(api.Translate("label", "Payment Received"))
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `resources/views/insert-coin.templ`, Line: 37, Col: 70}
 		}

@@ -24,7 +24,7 @@ func InitWiredCoinslots(api sdkapi.IPluginApi) {
 	_, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
 	fmt.Println("InitWiredCoinslots Error: ", err)
 	if errors.Is(err, os.ErrNotExist) {
-		mainVendo := api.Translate("label", "main_vendo")
+		mainVendo := api.Translate("label", "Main Vendo")
 		mainCoinslot := NewWiredCoinslot(api, mainVendo)
 		if err := mainCoinslot.Save(); err != nil {
 			api.Logger().Error(err.Error())
