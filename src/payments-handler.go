@@ -106,7 +106,10 @@ func PaymentReceivedHandler(api sdkplugin.IPluginApi) http.HandlerFunc {
 		ctx := r.Context()
 
 		err = sdkutils.RunInTx(c.api.SqlDB(), ctx, func(tx *sql.Tx) error {
-			if err := purchase.CreatePayment(tx, ctx, amount, c.GetName()); err != nil {
+			if err := purchase.CreatePayment(tx, ctx, sdkapi.CreatePaymentParams{
+				Amount:  amount,
+				Optname: c.GetName(),
+			}); err != nil {
 				return err
 			}
 
