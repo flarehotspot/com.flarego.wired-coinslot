@@ -1,6 +1,12 @@
 {
   "name": "Wired Coinslot",
   "package": "com.flarego.wired-coinslot",
-  "version": "0.0.1",
-  "description": "Wired coinslots plugin for Flare Hotspot"
+  "description": "Reads coin-acceptor pulses and controls the coin relay over GPIO (Orange Pi, Raspberry Pi) to accept coin payments",
+  "version": "0.0.9",
+  "system_packages": [
+    "python3-pip",
+    "python3-setuptools"
+  ],
+  "preinstall": "scripts/preinstall.sh",
+  "sdk": ""
 }
