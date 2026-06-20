@@ -1,0 +1,255 @@
+package views
+
+import (
+	"fmt"
+	sdkapi "sdk/api"
+)
+
+templ CoinslotSettingsPage(api sdkapi.IPluginApi, deviceModel string, boardModels []string, items []CoinslotSettingsData) {
+	<div id="wired-coinslots-settings" class="container-fluid">
+		<h3 class="mb-1">{ api.Translate("label", "Wired Coinslot") }</h3>
+		<p class="text-muted mb-4">{ api.Translate("info", "Configure coin acceptors wired directly to this device's GPIO pins.") }</p>
+		for _, item := range items {
+			@hardwareCard(api, deviceModel, boardModels, item)
+			@denominationsCard(api, item)
+		}
+	</div>
+}
+
+// hardwareCard holds the GPIO wiring + signal-detection form for one coinslot.
+// Advanced signal tuning is collapsed by default so the common case (pins +
+// board) stays uncluttered; x-show keeps the hidden inputs in the DOM so they
+// still submit with the form.
+templ hardwareCard(api sdkapi.IPluginApi, deviceModel string, boardModels []string, item CoinslotSettingsData) {
+	{{ saveURL := api.Http().Helpers().UrlForRoute("admin:wired-coinslots:settings-save", "id", item.ID) }}
+	<div class="card shadow-sm border border-light-subtle mb-4" x-data="{ advanced: false }">
+		<div class="card-body p-4">
+			<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+				<div>
+					<h5 class="fw-semibold mb-1">{ item.Name }</h5>
+					<p class="text-muted mb-0">{ api.Translate("info", "Pin wiring and coin-pulse signal settings") }</p>
+				</div>
+				<div class="d-flex gap-2">
+					<span class="badge rounded-pill text-bg-light border">
+						<i class="bi bi-cpu me-1"></i>{ api.Translate("label", "Coin") } { fmt.Sprintf("#%d", item.CoinPin) }
+					</span>
+					<span class="badge rounded-pill text-bg-light border">
+						<i class="bi bi-toggle2-on me-1"></i>{ api.Translate("label", "Relay") } { fmt.Sprintf("#%d", item.RelayPin) }
+					</span>
+				</div>
+			</div>
+			<hr class="mb-4"/>
+			<form method="post" action={ templ.SafeURL(saveURL) }>
+				<div class="mb-4" style="max-width: 32rem;">
+					<label class="form-label fw-medium">{ api.Translate("label", "Name") }</label>
+					<input type="text" class="form-control" name="name" value={ item.Name }/>
+				</div>
+
+				<h6 class="text-uppercase text-secondary fw-bold small mb-3">{ api.Translate("label", "GPIO Wiring") }</h6>
+				<div class="row g-3 mb-2">
+					<div class="col-md-4">
+						<label class="form-label">{ api.Translate("label", "Coin Pin") }</label>
+						<input type="number" class="form-control" name="coin_pin" value={ fmt.Sprintf("%d", item.CoinPin) } min="1" max="40"/>
+						<div class="form-text">{ api.Translate("info", "Header pin receiving coin-acceptor pulses.") }</div>
+					</div>
+					<div class="col-md-4">
+						<label class="form-label">{ api.Translate("label", "Relay Pin") }</label>
+						<input type="number" class="form-control" name="relay_pin" value={ fmt.Sprintf("%d", item.RelayPin) } min="1" max="40"/>
+						<div class="form-text">{ api.Translate("info", "Header pin driving the coin-acceptor relay.") }</div>
+					</div>
+					<div class="col-md-4">
+						<label class="form-label">{ api.Translate("label", "Relay Active Level") }</label>
+						<select class="form-select" name="relay_active">
+							<option value="1" selected?={ item.RelayActive == 1 }>{ api.Translate("label", "HIGH (1)") }</option>
+							<option value="0" selected?={ item.RelayActive == 0 }>{ api.Translate("label", "LOW (0)") }</option>
+						</select>
+						<div class="form-text">{ api.Translate("info", "Output level that switches the relay on.") }</div>
+					</div>
+				</div>
+
+				<h6 class="text-uppercase text-secondary fw-bold small mb-3 mt-4">{ api.Translate("label", "Board") }</h6>
+				<div class="row g-3 mb-2">
+					<div class="col-md-6">
+						<label class="form-label">{ api.Translate("label", "Board Model") }</label>
+						<select class="form-select" name="board_model">
+							<option value="" selected?={ item.BoardModel == "" }>{ api.Translate("label", "Auto-detect") }</option>
+							for _, model := range boardModels {
+								<option value={ model } selected?={ item.BoardModel == model }>{ model }</option>
+							}
+						</select>
+						<div class="form-text">
+							if item.BoardModel == "" {
+								{ api.Translate("info", "Auto-detect resolves to") }: <code>{ deviceModelLabel(deviceModel) }</code>
+							} else {
+								{ api.Translate("info", "Overrides hardware auto-detection — leave on Auto-detect unless detection is wrong.") }
+							}
+						</div>
+					</div>
+				</div>
+
+				<div class="mt-3">
+					<button type="button" class="btn btn-sm btn-link text-decoration-none px-0" @click="advanced = !advanced">
+						<i class="bi" :class="advanced ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+						<span x-show="!advanced">{ api.Translate("label", "Show advanced signal settings") }</span>
+						<span x-show="advanced" x-cloak>{ api.Translate("label", "Hide advanced signal settings") }</span>
+					</button>
+				</div>
+				<div x-show="advanced" x-cloak class="border-start ps-3 ms-1 mt-2">
+					<div class="row g-3">
+						<div class="col-md-3">
+							<label class="form-label">{ api.Translate("label", "Coin Pin Bias") }</label>
+							<select class="form-select" name="pull">
+								<option value="up" selected?={ item.Pull == "up" }>{ api.Translate("label", "Pull Up") }</option>
+								<option value="down" selected?={ item.Pull == "down" }>{ api.Translate("label", "Pull Down") }</option>
+							</select>
+							<div class="form-text">{ api.Translate("info", "Internal resistor. Use Pull Up for open-collector outputs.") }</div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{ api.Translate("label", "Pulse Edge") }</label>
+							<select class="form-select" name="edge">
+								<option value="falling" selected?={ item.Edge == "falling" }>{ api.Translate("label", "Falling") }</option>
+								<option value="rising" selected?={ item.Edge == "rising" }>{ api.Translate("label", "Rising") }</option>
+								<option value="both" selected?={ item.Edge == "both" }>{ api.Translate("label", "Both") }</option>
+							</select>
+							<div class="form-text">{ api.Translate("info", "Signal transition counted as one pulse.") }</div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{ api.Translate("label", "Debounce (ms)") }</label>
+							<input type="number" class="form-control" name="debounce_ms" value={ fmt.Sprintf("%d", item.DebounceMs) } min="0" max="1000"/>
+							<div class="form-text">{ api.Translate("info", "Ignore bouncing within this window after a pulse.") }</div>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{ api.Translate("label", "Pulse Window (ms)") }</label>
+							<input type="number" class="form-control" name="window_ms" value={ fmt.Sprintf("%d", item.WindowMs) } min="50" max="5000"/>
+							<div class="form-text">{ api.Translate("info", "Idle gap that ends one coin's pulse train.") }</div>
+						</div>
+					</div>
+				</div>
+
+				<hr class="my-4"/>
+				<button type="submit" class="btn btn-primary">
+					<i class="bi bi-check-lg me-1"></i>{ api.Translate("label", "Save Hardware Settings") }
+				</button>
+			</form>
+		</div>
+	</div>
+}
+
+// denominationsCard renders the dynamic per-coinslot denominations editor in its
+// own card, mirroring the wireless-coinslot layout. The add/edit/delete forms
+// are kept outside any other form (nested forms are invalid HTML); each input
+// is associated to its hidden form via the `form` attribute.
+templ denominationsCard(api sdkapi.IPluginApi, item CoinslotSettingsData) {
+	{{ symbol := getCurrencySymbol(api) }}
+	<div class="card shadow-sm border border-light-subtle mb-4">
+		<div class="card-body p-4">
+			<h5 class="fw-semibold mb-1">{ api.Translate("label", "Coin Denominations") }</h5>
+			<p class="text-muted mb-4">{ api.Translate("info", "Map a coin's pulse count to its monetary value.") }</p>
+			<div x-data="{ showAddForm: false, editIndex: -1 }">
+				<div class="table-responsive card border border-light-subtle mb-3">
+					<table class="table align-middle mb-0">
+						<thead class="table-light" style="--bs-table-bg: var(--bs-tertiary-bg);">
+							<tr>
+								<th class="text-secondary px-4 py-2">{ api.Translate("label", "Pulse Count") }</th>
+								<th class="text-secondary px-4 py-2">{ api.Translate("label", "Amount") } ({ symbol })</th>
+								<th class="text-secondary px-4 py-2 text-end" style="width: 130px;">{ api.Translate("label", "Actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, denom := range item.Denominations {
+								{{ updateURL := api.Http().Helpers().UrlForRoute("admin:wired-coinslots:denomination-update", "id", item.ID, "index", fmt.Sprint(denom.Index)) }}
+								{{ deleteURL := api.Http().Helpers().UrlForRoute("admin:wired-coinslots:denomination-delete", "id", item.ID, "index", fmt.Sprint(denom.Index)) }}
+								<tr x-show={ fmt.Sprintf("editIndex !== %d", denom.Index) }>
+									<td class="px-4 py-3">{ fmt.Sprintf("%d", denom.Pulses) }</td>
+									<td class="px-4 py-3">{ symbol }{ fmt.Sprintf("%.2f", denom.Amount) }</td>
+									<td class="px-4 py-3">
+										<div class="d-flex align-items-center justify-content-end gap-2">
+											<button
+												type="button"
+												class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center justify-content-center"
+												style="width: 32px; height: 32px;"
+												@click={ fmt.Sprintf("editIndex = %d; showAddForm = false", denom.Index) }
+												title={ api.Translate("label", "Edit") }
+											>
+												<i class="bi bi-pencil"></i>
+											</button>
+											<button
+												type="submit"
+												form={ fmt.Sprintf("del-denom-%s-%d", item.ID, denom.Index) }
+												class="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center"
+												style="width: 32px; height: 32px;"
+												if len(item.Denominations) <= 1 {
+													disabled
+												}
+												title={ api.Translate("label", "Delete") }
+												onclick="return confirm('Delete this denomination?')"
+											>
+												<i class="bi bi-trash"></i>
+											</button>
+										</div>
+										<form id={ fmt.Sprintf("del-denom-%s-%d", item.ID, denom.Index) } method="post" action={ templ.SafeURL(deleteURL) } style="display:none;"></form>
+									</td>
+								</tr>
+								<tr x-show={ fmt.Sprintf("editIndex === %d", denom.Index) } x-cloak>
+									<td class="px-4 py-3">
+										<input type="number" name="pulses" class="form-control" value={ fmt.Sprintf("%d", denom.Pulses) } min="1" max="10000" required form={ fmt.Sprintf("edit-denom-%s-%d", item.ID, denom.Index) }/>
+									</td>
+									<td class="px-4 py-3">
+										<input type="number" name="amount" class="form-control" value={ fmt.Sprintf("%.2f", denom.Amount) } step="0.01" min="0.01" max="100000" required form={ fmt.Sprintf("edit-denom-%s-%d", item.ID, denom.Index) }/>
+									</td>
+									<td class="px-4 py-3">
+										<div class="d-flex align-items-center justify-content-end gap-2">
+											<button type="submit" form={ fmt.Sprintf("edit-denom-%s-%d", item.ID, denom.Index) } class="btn btn-sm btn-success d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title={ api.Translate("label", "Save") }>
+												<i class="bi bi-check-lg"></i>
+											</button>
+											<button type="button" class="btn btn-sm btn-secondary d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" @click="editIndex = -1" title={ api.Translate("label", "Cancel") }>
+												<i class="bi bi-x-lg"></i>
+											</button>
+										</div>
+										<form id={ fmt.Sprintf("edit-denom-%s-%d", item.ID, denom.Index) } method="post" action={ templ.SafeURL(updateURL) } style="display:none;"></form>
+									</td>
+								</tr>
+							}
+							{{ addURL := api.Http().Helpers().UrlForRoute("admin:wired-coinslots:denomination-add", "id", item.ID) }}
+							<tr x-show="showAddForm" x-cloak>
+								<td class="px-4 py-3">
+									<input type="number" name="pulses" class="form-control" placeholder="20" min="1" max="10000" required form={ fmt.Sprintf("add-denom-%s", item.ID) }/>
+								</td>
+								<td class="px-4 py-3">
+									<input type="number" name="amount" class="form-control" placeholder="20.00" step="0.01" min="0.01" max="100000" required form={ fmt.Sprintf("add-denom-%s", item.ID) }/>
+								</td>
+								<td class="px-4 py-3">
+									<div class="d-flex align-items-center justify-content-end gap-2">
+										<button type="submit" form={ fmt.Sprintf("add-denom-%s", item.ID) } class="btn btn-sm btn-success d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" title={ api.Translate("label", "Save") }>
+											<i class="bi bi-check-lg"></i>
+										</button>
+										<button type="button" class="btn btn-sm btn-secondary d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px;" @click="showAddForm = false" title={ api.Translate("label", "Cancel") }>
+											<i class="bi bi-x-lg"></i>
+										</button>
+									</div>
+									<form id={ fmt.Sprintf("add-denom-%s", item.ID) } method="post" action={ templ.SafeURL(addURL) } style="display:none;"></form>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="card bg-body-tertiary px-3 py-2 border border-light-subtle mb-3">
+					<div class="d-flex align-items-center gap-2 text-muted small">
+						<i class="bi bi-info-circle"></i>
+						<span>{ api.Translate("info", "One coin emits a burst of pulses; the count is matched to the amount above.") }</span>
+					</div>
+				</div>
+				<button type="button" class="btn btn-primary" x-show="!showAddForm" @click="showAddForm = true; editIndex = -1">
+					<i class="bi bi-plus-lg me-1"></i>{ api.Translate("label", "Add Denomination") }
+				</button>
+			</div>
+		</div>
+	</div>
+}
+
+func deviceModelLabel(model string) string {
+	if model == "" {
+		return "unknown"
+	}
+	return model
+}

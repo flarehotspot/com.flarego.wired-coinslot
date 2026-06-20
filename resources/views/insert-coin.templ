@@ -3,36 +3,41 @@ package views
 import (
 	"fmt"
 	sdkapi "sdk/api"
-	"context"
-    "database/sql"
 )
 
-templ InsertCoinPage(tx *sql.Tx, ctx context.Context, api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string) {
-	<h1>{ api.Translate("label", "Insert Coin") }</h1>
-	<hr/>
-	<button
-		class="btn btn-default"
-		type="button"
-	 	hx-post={ api.Http().Helpers().UrlForRoute("payments.received", "id", coinslotID, "amount", "1") }
-		hx-target="#payment-received"
-	>
-		{ api.Translate("label", "Mock Insert Coin") }
-	</button>
-	<a class="btn btn-success" href={ templ.SafeURL(api.Http().Helpers().UrlForRoute("payments.done")) }>
-		{ api.Translate("label", "Done Payment") }
-	</a>
-	@PaymentReceivedPartial(api, tx, ctx, purchase)
-}
-
-templ PaymentReceivedPartial(api sdkapi.IPluginApi, tx *sql.Tx, ctx context.Context, purchase sdkapi.IPurchaseRequest) {
+// mockURL is the synthetic-coin endpoint, set only in dev builds; it is "" in
+// production, where no "Mock Insert Coin" button is rendered.
+templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, coinslotID string, mockURL string) {
 	{{
-        var amount float64
-        state, err := purchase.State(tx, ctx)
-        if err != nil {
-            amount = 0
-        } else {
-            amount = state.TotalPayment
-        }
+		eventsURL := api.Http().Helpers().UrlForRoute("payments.coin_events", "id", coinslotID)
+		doneURL := api.Http().Helpers().UrlForRoute("payments.done")
+		price := purchase.Price()
+		fixed := purchase.IsFixedPrice()
 	}}
-	<p id="payment-received">{ api.Translate("label", "Payment Received") }: { fmt.Sprintf("%.2f", amount) }</p>
+	<div
+		id="insert-coin-page"
+		data-events-url={ eventsURL }
+		data-mock-url={ mockURL }
+		data-done-url={ doneURL }
+		data-price={ fmt.Sprintf("%.2f", price) }
+		data-fixed={ fmt.Sprintf("%t", fixed) }
+	>
+		<h1>{ api.Translate("label", "Insert Coin") }</h1>
+		<hr/>
+		<p>
+			{ api.Translate("label", "Amount Paid") }: <span id="coin-total">0.00</span>
+			if fixed {
+				<span>{ fmt.Sprintf(" / %.2f", price) }</span>
+			}
+		</p>
+		<p id="coin-status">{ api.Translate("info", "Waiting for coins...") }</p>
+		if mockURL != "" {
+			<button type="button" class="btn btn-default" id="mock-coin-btn">
+				{ api.Translate("label", "Mock Insert Coin") }
+			</button>
+		}
+		<a id="done-btn" class="btn btn-success disabled" href={ templ.SafeURL(doneURL) }>
+			{ api.Translate("label", "Done Payment") }
+		</a>
+	</div>
 }

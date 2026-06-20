@@ -2,7 +2,6 @@ package src
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	sdkapi "sdk/api"
@@ -14,54 +13,96 @@ import (
 
 const (
 	WiredCoinslotsPrefix string = "wired_coinslots"
+
+	// Hardware defaults. Pin numbers are physical header pins (BOARD numbering):
+	// pin #3 = coin-acceptor pulse input, pin #5 = relay output.
+	DefaultCoinPin     = 3
+	DefaultRelayPin    = 5
+	DefaultRelayActive = 1 // relay value that energizes the coil / accepts coins
+	DefaultPull        = "up"
+	DefaultEdge        = "falling"
+	DefaultDebounceMs  = 30
+	DefaultWindowMs    = 400
 )
+
+// DefaultDenominations covers the common Philippine coin set where the acceptor
+// emits one pulse per peso.
+func DefaultDenominations() []Denomination {
+	return []Denomination{
+		{Pulses: 1, Amount: 1},
+		{Pulses: 5, Amount: 5},
+		{Pulses: 10, Amount: 10},
+	}
+}
 
 var (
 	UsedCoinslots sync.Map
 )
 
 func InitWiredCoinslots(api sdkapi.IPluginApi) {
-	_, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
-	fmt.Println("InitWiredCoinslots Error: ", err)
-	if errors.Is(err, os.ErrNotExist) {
-		mainVendo := api.Translate("label", "Main Vendo")
-		mainCoinslot := NewWiredCoinslot(api, mainVendo)
-		if err := mainCoinslot.Save(); err != nil {
-			api.Logger().Error(err.Error())
-		}
+	entries, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
+	// A missing config dir is the expected "fresh install" case; any other
+	// error means we can't safely tell whether coinslots exist, so don't seed
+	// (seeding on top of unreadable data could create a duplicate).
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		_ = api.Logger().Error("[wired-coinslot] failed to list coinslots during init: " + err.Error())
+		return
+	}
+	// Seed the default "Main Vendo" whenever there are zero coinslots — covers
+	// both a missing dir (ErrNotExist) and a present-but-empty dir, which some
+	// config backends produce. Keying only on ErrNotExist (the previous
+	// behavior) silently skipped seeding on present-but-empty dirs, leaving the
+	// plugin with no coinslots, no payment option, and an empty settings page.
+	if len(entries) > 0 {
+		return
+	}
+	mainVendo := api.Translate("label", "Main Vendo")
+	mainCoinslot := NewWiredCoinslot(api, mainVendo)
+	if err := mainCoinslot.Save(); err != nil {
+		_ = api.Logger().Error("[wired-coinslot] failed to seed default coinslot: " + err.Error())
 	}
 }
 
 func NewWiredCoinslot(api sdkapi.IPluginApi, name string) *WiredCoinslot {
-	return &WiredCoinslot{
+	c := &WiredCoinslot{
 		api:  api,
 		ID:   sdkutils.RandomStr(16),
 		Name: name,
 	}
+	c.ApplyDefaults()
+	return c
 }
 
 func GetAllWiredCoinslots(api sdkapi.IPluginApi) ([]*WiredCoinslot, error) {
 	coinslotEntries, err := api.Config().Plugin().List(WiredCoinslotsPrefix)
 	if err != nil {
+		// No config dir yet means "no coinslots", not a failure — return an
+		// empty list so callers (payment options, settings page) render cleanly.
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
-	coinslots := make([]*WiredCoinslot, len(coinslotEntries))
-	for i, entry := range coinslotEntries {
+	// Append only successfully-parsed entries so a single corrupt config can
+	// never leave a nil hole in the slice (which would panic nil-unsafe callers).
+	coinslots := make([]*WiredCoinslot, 0, len(coinslotEntries))
+	for _, entry := range coinslotEntries {
 		b, err := api.Config().Plugin().Read(entry.Path)
 		if err != nil {
-			fmt.Println("Error reading wired coinslot config:", err)
+			_ = api.Logger().Error("[wired-coinslot] failed to read coinslot config: " + err.Error())
 			continue
 		}
 
 		var c WiredCoinslot
 		if err := json.Unmarshal(b, &c); err != nil {
-			fmt.Println("Error parsing wired coinslot: ", err)
+			_ = api.Logger().Error("[wired-coinslot] failed to parse coinslot config: " + err.Error())
 			continue
 		}
 
 		c.api = api
-		coinslots[i] = &c
+		c.ApplyDefaults()
+		coinslots = append(coinslots, &c)
 	}
 
 	return coinslots, nil
@@ -95,6 +136,7 @@ func LoadWiredCoinslot(api sdkapi.IPluginApi, coinslotID string) (*WiredCoinslot
 	}
 
 	c.api = api
+	c.ApplyDefaults()
 	return &c, nil
 }
 
@@ -102,6 +144,63 @@ type WiredCoinslot struct {
 	api  sdkapi.IPluginApi
 	ID   string
 	Name string
+
+	// Hardware configuration (physical BOARD pin numbers).
+	CoinPin     int    // coin-acceptor pulse input pin
+	RelayPin    int    // relay output pin
+	RelayActive int    // output value (0/1) that energizes the relay
+	Pull        string // input bias for the coin pin: "up" | "down"
+	Edge        string // pulse edge to count: "falling" | "rising" | "both"
+	DebounceMs  int    // hardware debounce for the coin pin
+	WindowMs    int    // idle window (ms) to finish counting a coin's pulses
+
+	// Board selection override. Empty falls back to auto-detection from
+	// /etc/os_release.json device_model. When set to a known model, the board's
+	// GPIO library and OPi board module are resolved from the registry.
+	BoardModel string // override device_model key (e.g. "orangepi-zero-3")
+	Library    string // resolved GPIO library: "rpi" | "opi" (set from registry/detection)
+
+	Denominations []Denomination
+}
+
+// ApplyDefaults fills unset hardware fields. A coinslot saved by the original
+// scaffold has no hardware block at all, so when nothing is set we apply the
+// full default set (this also avoids the active-low ambiguity of RelayActive==0,
+// which is only honored once the config has been saved by the new code).
+func (c *WiredCoinslot) ApplyDefaults() {
+	legacy := c.CoinPin == 0 && c.RelayPin == 0 && len(c.Denominations) == 0
+	if legacy {
+		c.CoinPin = DefaultCoinPin
+		c.RelayPin = DefaultRelayPin
+		c.RelayActive = DefaultRelayActive
+		c.Pull = DefaultPull
+		c.Edge = DefaultEdge
+		c.DebounceMs = DefaultDebounceMs
+		c.WindowMs = DefaultWindowMs
+		c.Denominations = DefaultDenominations()
+		return
+	}
+	if c.CoinPin == 0 {
+		c.CoinPin = DefaultCoinPin
+	}
+	if c.RelayPin == 0 {
+		c.RelayPin = DefaultRelayPin
+	}
+	if c.Pull == "" {
+		c.Pull = DefaultPull
+	}
+	if c.Edge == "" {
+		c.Edge = DefaultEdge
+	}
+	if c.DebounceMs == 0 {
+		c.DebounceMs = DefaultDebounceMs
+	}
+	if c.WindowMs == 0 {
+		c.WindowMs = DefaultWindowMs
+	}
+	if len(c.Denominations) == 0 {
+		c.Denominations = DefaultDenominations()
+	}
 }
 
 func (c *WiredCoinslot) ConfigPath() string {

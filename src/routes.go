@@ -6,14 +6,13 @@ import (
 
 func SetRoutes(api sdkapi.IPluginApi) {
 	rtr := api.Http().Router().PluginRouter()
-	insertCoinHandler := InsertCoinHandler(api)
-	paymentReceivedHandler := PaymentReceivedHandler(api)
-	donePaymentHandler := DonePayingHandler(api)
 
 	rtr.Group("/payments", func(subrouter sdkapi.IHttpRouterInstance) {
-		subrouter.Get("/insert-coin/{id}", insertCoinHandler).Name("payments.insert_coin")
-		subrouter.Post("/received/{id}/{amount}", paymentReceivedHandler).Name("payments.received")
-		subrouter.Get("/done", donePaymentHandler).Name("payments.done")
-	})
+		subrouter.Get("/insert-coin/{id}", InsertCoinHandler(api)).Name("payments.insert_coin")
+		subrouter.Get("/coin-events/{id}", CoinEventsHandler(api)).Name("payments.coin_events")
+		subrouter.Get("/done", DonePayingHandler(api)).Name("payments.done")
 
+		// Synthetic-coin endpoint, registered only in dev builds (no-op in prod).
+		RegisterMockRoutes(api, subrouter)
+	})
 }
