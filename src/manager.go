@@ -7,7 +7,7 @@ import (
 	sdkapi "sdk/api"
 
 	"com.flarego.wired-coinslot/src/gpio"
-	sdkutils "github.com/flarehotspot/sdk-utils"
+	sdkutils "github.com/flarewifi/sdk-utils"
 )
 
 const osReleaseFile = "/etc/os_release.json"
