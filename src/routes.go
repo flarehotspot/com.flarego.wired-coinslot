@@ -5,7 +5,7 @@ import (
 )
 
 func SetRoutes(api sdkapi.IPluginApi) {
-	rtr := api.Http().Router().PluginRouter()
+	rtr := api.Http().Router().HttpRouter(nil)
 
 	rtr.Group("/payments", func(subrouter sdkapi.IHttpRouterInstance) {
 		subrouter.Get("/insert-coin/{id}", InsertCoinHandler(api)).Name("payments.insert_coin")
