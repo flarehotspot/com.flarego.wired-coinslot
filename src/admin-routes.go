@@ -5,7 +5,7 @@ import (
 )
 
 func SetAdminRoutes(api sdkapi.IPluginApi) {
-	adminR := api.Http().Router().AdminRouter()
+	adminR := api.Http().Router().AdminRouter(nil)
 
 	adminR.Group("/wired-coinslots", func(subrouter sdkapi.IHttpRouterInstance) {
 		subrouter.
