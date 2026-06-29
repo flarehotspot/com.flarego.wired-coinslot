@@ -2,10 +2,9 @@
   "name": "Wired Coinslot",
   "package": "com.flarego.wired-coinslot",
   "description": "Reads coin-acceptor pulses and controls the coin relay over GPIO (Orange Pi, Raspberry Pi) to accept coin payments",
-  "version": "0.0.15",
+  "version": "0.0.19",
   "system_packages": [
-    "python3-pip",
-    "python3-setuptools"
+    "gpiod-tools"
   ],
   "sdk": "",
   "preinstall": "scripts/preinstall.sh",

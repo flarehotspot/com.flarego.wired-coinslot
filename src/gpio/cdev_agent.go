@@ -12,16 +12,24 @@ import (
 
 // CdevAgent drives one coinslot through the Linux GPIO character device using
 // the pure-Go go-gpiocdev library. Unlike the Python *Agent it needs no
-// subprocess, no interpreter, and no pip-installed library: the kernel delivers
-// coin-pulse edges straight to an in-process callback, and the relay is a held
-// output line. It is the driver for sunxi boards (e.g. OrangePi Zero 3) whose
-// modern kernels expose GPIO only via /dev/gpiochipN, not the removed sysfs.
+// subprocess, no interpreter, and no pip-installed library. The relay is a held
+// output line; the coin pin is read by a high-frequency polling goroutine. It is
+// the driver for sunxi boards (e.g. OrangePi One/Zero 3) whose modern kernels
+// expose GPIO only via /dev/gpiochipN, not the removed sysfs.
+//
+// Coin detection POLLS rather than using edge interrupts. On Allwinner sunxi
+// the GPIO *value* is reliably readable via the char device, but cdev *edge
+// events* do not actually fire on many pins/kernels (the IRQ shows as armed yet
+// never delivers) — verified on an OrangePi One (H3, kernel 5.15) where every
+// coin pulse was visible by polling the line value but produced zero edge
+// events. Coin-acceptor pulses are tens of milliseconds wide, so a ~1ms poll
+// with software debounce catches every one reliably and portably.
 //
 // Lines are addressed by (chip-label, line-offset). The chip is resolved by its
-// pinctrl label rather than its /dev name, because /dev/gpiochipN ordering is
-// not stable across kernels. The offset is computed from the Allwinner port
-// name (e.g. "PH5") because sunxi kernels leave individual line names unset, so
-// name-based lookup is unavailable.
+// pinctrl label substring rather than its /dev name, because /dev/gpiochipN
+// ordering is not stable across kernels. The offset is computed from the
+// Allwinner port name via the sunxi formula because sunxi kernels leave
+// individual line names unset, so name-based lookup is unavailable.
 type CdevAgent struct {
 	cfg    Config
 	logger Logger
@@ -32,13 +40,22 @@ type CdevAgent struct {
 	coin      *gpiocdev.Line
 	relay     *gpiocdev.Line
 	relayOpen bool
+
+	done     chan struct{}
+	stopOnce sync.Once
 }
+
+// coinPollInterval is how often the coin line value is sampled. Coin-acceptor
+// pulses are tens of ms wide, so 1ms (1kHz) catches every edge with margin at
+// negligible CPU cost (one ioctl read per tick).
+const coinPollInterval = time.Millisecond
 
 func NewCdevAgent(cfg Config, logger Logger) *CdevAgent {
 	return &CdevAgent{
 		cfg:    cfg,
 		logger: logger,
 		pulses: make(chan struct{}, pulseBufferSize),
+		done:   make(chan struct{}),
 	}
 }
 
@@ -48,10 +65,11 @@ var _ CoinAgent = (*CdevAgent)(nil)
 // Pulses delivers one value per coin-acceptor pulse detected on the coin line.
 func (a *CdevAgent) Pulses() <-chan struct{} { return a.pulses }
 
-// Start requests the coin (edge-detected input) and relay (held output) lines.
-// Hardware-unavailable conditions — no matching chip, a busy line, missing
-// permissions — are logged once and leave the agent in a disabled state rather
-// than failing: the coinslot runtime (and the dev mock-pulse path) keep working.
+// Start requests the coin (polled input) and relay (held output) lines and
+// launches the coin poller. Hardware-unavailable conditions — no matching chip,
+// a busy line, missing permissions — are logged once and leave the agent in a
+// disabled state rather than failing: the coinslot runtime (and the dev
+// mock-pulse path) keep working.
 func (a *CdevAgent) Start() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -67,9 +85,11 @@ func (a *CdevAgent) Start() error {
 	return nil
 }
 
-// Stop releases both lines. go-gpiocdev reverts a released line to its default
-// (input) state, so the relay is de-energized on shutdown — coins rejected.
+// Stop signals the coin poller to exit and releases both lines. go-gpiocdev
+// reverts a released line to its default (input) state, so the relay is
+// de-energized on shutdown — coins rejected.
 func (a *CdevAgent) Stop() {
+	a.stopOnce.Do(func() { close(a.done) })
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.releaseLocked()
@@ -112,18 +132,9 @@ func (a *CdevAgent) setup() error {
 		return fmt.Errorf("relay pin: %w", err)
 	}
 
-	// Coin line: biased input with a hardware-debounced edge interrupt. Every
-	// delivered event is one pulse (only the requested edge fires, except in
-	// "both" mode where counting every transition is intentional).
-	coinOpts := []gpiocdev.LineReqOption{
-		gpiocdev.WithEventHandler(a.onEvent),
-		edgeOption(a.cfg.Edge),
-		pullOption(a.cfg.Pull),
-	}
-	if a.cfg.DebounceMs > 0 {
-		coinOpts = append(coinOpts, gpiocdev.WithDebounce(time.Duration(a.cfg.DebounceMs)*time.Millisecond))
-	}
-	coin, err := gpiocdev.RequestLine(chipName, coinOffset, coinOpts...)
+	// Coin line: biased input, read by the poller (NOT edge interrupts — see the
+	// type doc for why cdev edge events are unreliable on sunxi).
+	coin, err := gpiocdev.RequestLine(chipName, coinOffset, gpiocdev.AsInput, pullOption(a.cfg.Pull))
 	if err != nil {
 		return fmt.Errorf("request coin pin %d / %s (offset %d): %w", a.cfg.CoinPin, coinPort, coinOffset, err)
 	}
@@ -138,9 +149,55 @@ func (a *CdevAgent) setup() error {
 	a.relay = relay
 
 	a.applyRelayLocked()
-	a.logf(fmt.Sprintf("gpiod agent ready on %s (coin pin %d=%s, relay pin %d=%s)",
+	go a.pollCoin(coin)
+
+	a.logf(fmt.Sprintf("gpiod agent ready on %s (coin pin %d=%s polled, relay pin %d=%s)",
 		chipName, a.cfg.CoinPin, coinPort, a.cfg.RelayPin, relayPort))
 	return nil
+}
+
+// pollCoin samples the coin line at coinPollInterval and emits one pulse per
+// configured edge (default falling), with a software debounce so contact bounce
+// within DebounceMs of an accepted pulse is ignored. It exits when the agent is
+// stopped (a.done closed) or the line read fails (line closed on release).
+func (a *CdevAgent) pollCoin(line *gpiocdev.Line) {
+	debounce := time.Duration(a.cfg.DebounceMs) * time.Millisecond
+	ticker := time.NewTicker(coinPollInterval)
+	defer ticker.Stop()
+
+	prev, err := line.Value()
+	if err != nil {
+		a.logf("coin poll: initial read failed: " + err.Error())
+		return
+	}
+	var lastPulse time.Time
+
+	for {
+		select {
+		case <-a.done:
+			return
+		case <-ticker.C:
+		}
+
+		cur, err := line.Value()
+		if err != nil {
+			return // line released/closed
+		}
+		if cur == prev {
+			continue
+		}
+		if isPulseEdge(a.cfg.Edge, prev, cur) {
+			now := time.Now()
+			if debounce <= 0 || now.Sub(lastPulse) >= debounce {
+				lastPulse = now
+				select {
+				case a.pulses <- struct{}{}:
+				default: // drop if the consumer is momentarily behind
+				}
+			}
+		}
+		prev = cur
+	}
 }
 
 // resolvePin maps a physical header pin to its Allwinner port name (via the
@@ -157,10 +214,17 @@ func (a *CdevAgent) resolvePin(pin int) (port string, offset int, err error) {
 	return port, offset, nil
 }
 
-func (a *CdevAgent) onEvent(_ gpiocdev.LineEvent) {
-	select {
-	case a.pulses <- struct{}{}:
-	default: // drop if the consumer is momentarily behind
+// isPulseEdge reports whether a prev->cur level change counts as one pulse for
+// the configured edge: "rising" (low->high), "both" (any change), or the
+// default "falling" (high->low, the common open-collector coin-acceptor pulse).
+func isPulseEdge(edge string, prev, cur int) bool {
+	switch edge {
+	case "rising":
+		return prev == 0 && cur == 1
+	case "both":
+		return true
+	default: // falling
+		return prev == 1 && cur == 0
 	}
 }
 
@@ -245,19 +309,6 @@ func sunxiOffset(port string) (int, error) {
 		return 0, fmt.Errorf("invalid pin number in %q", port)
 	}
 	return int(bank-'A')*32 + num, nil
-}
-
-// edgeOption maps the configured edge to a go-gpiocdev request option,
-// defaulting to falling (the common open-collector coin-acceptor pulse).
-func edgeOption(edge string) gpiocdev.LineReqOption {
-	switch edge {
-	case "rising":
-		return gpiocdev.WithRisingEdge
-	case "both":
-		return gpiocdev.WithBothEdges
-	default:
-		return gpiocdev.WithFallingEdge
-	}
 }
 
 // pullOption maps the configured bias to a go-gpiocdev request option,
