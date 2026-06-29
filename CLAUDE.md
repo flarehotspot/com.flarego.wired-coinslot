@@ -19,6 +19,19 @@ This plugin is a **separate, gitignored repo** (the parent flarewifi repo won't 
    boots CLOSED. Most acceptors are **inhibited while the relay is closed**, so coins only pulse during an
    active payment session — keep this in mind when testing ("no pulses" is often "relay was closed").
 
+### One-payer-at-a-time (atomic claim + ownership re-checks)
+
+Only one client may pay through a coinslot at a time, enforced in three layers — don't weaken any of them:
+
+- **Atomic claim:** `WiredCoinslot.TryUseBy` uses `sync.Map.LoadOrStore` so check-and-claim is one step (the
+  old `CanBeUsedBy()`+`UseBy()` pair was a check-then-act race where two clients could both see "free").
+  Back out only with `ReleaseIfOwner` (`CompareAndDelete`) — never `DoneUsing`/`Delete` after a failed
+  start, or you can delete another device's claim.
+- **`Begin` re-validates** the claim (`UsedCoinslots.Load == clientID`) and refuses to overwrite a session
+  owned by a different client; returns `bool`.
+- **`Subscribe(coinslotID, clientID)` re-validates** that the subscriber owns the session before handing out
+  the SSE channel (and thus the relay). `CoinEventsHandler` passes the authenticated client device's ID.
+
 ### "Counting payment" cue + idle countdown (insert-coin page UX)
 
 - **Counting cue:** a coin's pulse burst takes `WindowMs` of silence to resolve into an amount, so there's a

@@ -232,22 +232,35 @@ func (c *WiredCoinslot) GetName() string {
 	return c.Name
 }
 
-func (c *WiredCoinslot) CanBeUsedBy(deviceID int64) bool {
-	if v, ok := UsedCoinslots.Load(c.ID); ok {
-		if v.(int64) == deviceID {
-			return true
-		}
-		return false
-	}
-	return true
+// TryUseBy atomically claims the coinslot for deviceID and reports whether the
+// caller now holds it. LoadOrStore makes the check-and-claim a single atomic
+// step, closing the check-then-act race that a separate CanBeUsedBy()+UseBy()
+// left open (two clients could both see "free" before either stored). It returns
+// true when the slot was free (claimed now) or already held by the same device
+// (idempotent re-entry, e.g. a page refresh), and false when a different device
+// currently holds it.
+func (c *WiredCoinslot) TryUseBy(deviceID int64) bool {
+	actual, _ := UsedCoinslots.LoadOrStore(c.ID, deviceID)
+	return actual.(int64) == deviceID
 }
 
-func (c *WiredCoinslot) UseBy(deviceID int64) {
-	UsedCoinslots.Store(c.ID, deviceID)
+// IsUsedBy reports whether deviceID currently holds this coinslot's claim. It is
+// the read-only ownership check used to re-validate a claim without mutating it.
+func (c *WiredCoinslot) IsUsedBy(deviceID int64) bool {
+	v, ok := UsedCoinslots.Load(c.ID)
+	return ok && v.(int64) == deviceID
 }
 
 func (c *WiredCoinslot) DoneUsing() {
 	UsedCoinslots.Delete(c.ID)
+}
+
+// ReleaseIfOwner deletes this coinslot's claim only if deviceID still holds it.
+// It lets a caller safely back out of its own claim without risking deleting a
+// claim that has meanwhile been taken by another device (CompareAndDelete is a
+// no-op when the current value differs).
+func (c *WiredCoinslot) ReleaseIfOwner(deviceID int64) {
+	UsedCoinslots.CompareAndDelete(c.ID, deviceID)
 }
 
 func (c *WiredCoinslot) Save() error {

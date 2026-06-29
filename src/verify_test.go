@@ -1,11 +1,13 @@
 package src
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"com.flarego.wired-coinslot/src/gpio"
+	sdkutils "github.com/flarewifi/sdk-utils"
 )
 
 func TestResolveAmount(t *testing.T) {
@@ -66,6 +68,68 @@ func TestPulseCounterAggregation(t *testing.T) {
 	// resets its idle countdown the moment a coin starts arriving.
 	if c := atomic.LoadInt32(&countingCalls); c != 1 {
 		t.Errorf("expected onCounting to fire once on the leading edge, got %d", c)
+	}
+}
+
+func TestTryUseByOwnership(t *testing.T) {
+	c := &WiredCoinslot{ID: "own-slot-" + sdkutils.RandomStr(6)}
+	defer c.DoneUsing()
+
+	if !c.TryUseBy(1) {
+		t.Fatal("first claim should succeed")
+	}
+	if !c.TryUseBy(1) {
+		t.Fatal("same-device re-claim should be idempotent (true)")
+	}
+	if c.TryUseBy(2) {
+		t.Fatal("a different device must not steal an existing claim")
+	}
+	if !c.IsUsedBy(1) || c.IsUsedBy(2) {
+		t.Fatal("device 1 must own the claim, device 2 must not")
+	}
+
+	// Releasing as the wrong owner must be a no-op (CompareAndDelete).
+	c.ReleaseIfOwner(2)
+	if !c.IsUsedBy(1) {
+		t.Fatal("release by a non-owner must not free the claim")
+	}
+	// Releasing as the owner frees it for the next device.
+	c.ReleaseIfOwner(1)
+	if c.IsUsedBy(1) {
+		t.Fatal("owner release should free the claim")
+	}
+	if !c.TryUseBy(2) {
+		t.Fatal("after release, another device can claim")
+	}
+}
+
+// TestTryUseByConcurrentSingleWinner is the regression guard for the original
+// check-then-act race: many devices race to claim the same coinslot at once and
+// exactly one must win (LoadOrStore is atomic, so there is no window where two
+// callers both observe "free").
+func TestTryUseByConcurrentSingleWinner(t *testing.T) {
+	c := &WiredCoinslot{ID: "race-slot-" + sdkutils.RandomStr(6)}
+	defer c.DoneUsing()
+
+	const n = 64
+	var wins int32
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(id int64) {
+			defer wg.Done()
+			<-start // line everyone up so the claims truly race
+			if c.TryUseBy(id) {
+				atomic.AddInt32(&wins, 1)
+			}
+		}(int64(i + 1))
+	}
+	close(start)
+	wg.Wait()
+
+	if wins != 1 {
+		t.Errorf("expected exactly one winner, got %d", wins)
 	}
 }
 

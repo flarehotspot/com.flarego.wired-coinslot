@@ -70,15 +70,32 @@ func NewPaymentSessionManager(api sdkapi.IPluginApi, relays RelayController) *Pa
 // Begin starts (or resumes) a paying session for a client on a coinslot and
 // opens the relay so coins are accepted. timeoutSecs is the page's idle
 // countdown, broadcast to the client so it can auto-finalize when it elapses.
-func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest, timeoutSecs int) {
+//
+// It re-validates the claim independently of the caller: only the device that
+// holds the coinslot claim (the atomic UsedCoinslots entry) may start/resume a
+// session, and an existing session for a different client is never clobbered. It
+// returns false if the caller does not own the claim or another client already
+// holds the session — defense in depth behind the atomic claim in TryUseBy.
+func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest, timeoutSecs int) bool {
+	// Re-check ownership against the atomic claim map.
+	if v, ok := UsedCoinslots.Load(coinslotID); !ok || v.(int64) != clientID {
+		return false
+	}
+
 	m.mu.Lock()
-	if s, ok := m.byID[coinslotID]; ok && s.clientID == clientID {
+	if s, ok := m.byID[coinslotID]; ok {
+		if s.clientID != clientID {
+			// A session already belongs to a different client — refuse rather
+			// than overwrite it (should be unreachable given the atomic claim).
+			m.mu.Unlock()
+			return false
+		}
 		s.purchase = purchase
 		s.timeoutSecs = timeoutSecs
 		m.mu.Unlock()
 		s.cancelGrace()
 		m.relays.OpenRelay(coinslotID)
-		return
+		return true
 	}
 	m.byID[coinslotID] = &paymentSession{
 		coinslotID:  coinslotID,
@@ -91,6 +108,7 @@ func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchas
 	}
 	m.mu.Unlock()
 	m.relays.OpenRelay(coinslotID)
+	return true
 }
 
 // Credit records an accepted coin against the active session's purchase and
@@ -133,12 +151,15 @@ func (m *PaymentSessionManager) Counting(coinslotID string) {
 	s.mu.Unlock()
 }
 
-// Subscribe attaches an SSE listener. The returned unsubscribe func must be
-// called when the connection ends; when the last subscriber leaves, the relay is
-// closed and a grace timer is armed to end the session.
-func (m *PaymentSessionManager) Subscribe(coinslotID string) (<-chan CoinEvent, func(), bool) {
+// Subscribe attaches an SSE listener for clientID. The returned unsubscribe func
+// must be called when the connection ends; when the last subscriber leaves, the
+// relay is closed and a grace timer is armed to end the session. It re-validates
+// ownership: only the client that owns the session may subscribe (and thus hold
+// the relay open), so a racing/stale request for someone else's session is
+// refused with ok=false.
+func (m *PaymentSessionManager) Subscribe(coinslotID string, clientID int64) (<-chan CoinEvent, func(), bool) {
 	s := m.get(coinslotID)
-	if s == nil {
+	if s == nil || s.clientID != clientID {
 		return nil, nil, false
 	}
 

@@ -38,15 +38,24 @@ func InsertCoinHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		if !c.CanBeUsedBy(clnt.ID()) {
+		// Atomically claim the coinslot for this client. TryUseBy closes the
+		// check-then-act race a separate CanBeUsedBy()+UseBy() left open.
+		if !c.TryUseBy(clnt.ID()) {
 			res.FlashMsg(w, r, api.Translate("error", "Somebody else is using this coinslot right now."), sdkapi.FlashMsgError)
 			res.RedirectToPortal(w, r)
 			return
 		}
-		c.UseBy(clnt.ID())
 
 		if mgr := GetManager(); mgr != nil {
-			mgr.Sessions().Begin(coinslotID, clnt.ID(), purchase, c.PaymentTimeoutSecs)
+			// Begin re-validates the claim; a false return means the claim was lost
+			// between TryUseBy and here (should be unreachable). Release our own
+			// claim (owner-checked) and bail rather than render a dead page.
+			if !mgr.Sessions().Begin(coinslotID, clnt.ID(), purchase, c.PaymentTimeoutSecs) {
+				c.ReleaseIfOwner(clnt.ID())
+				res.FlashMsg(w, r, api.Translate("error", "Somebody else is using this coinslot right now."), sdkapi.FlashMsgError)
+				res.RedirectToPortal(w, r)
+				return
+			}
 		}
 
 		res.PortalView(w, r, sdkapi.ViewPage{
@@ -78,7 +87,15 @@ func CoinEventsHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 			return
 		}
 
-		ch, unsub, ok := mgr.Sessions().Subscribe(coinslotID)
+		// Identify the subscriber so Subscribe can verify it owns the session —
+		// only the paying client may hold the relay open via this stream.
+		clnt, err := api.Http().GetClientDevice(r)
+		if err != nil {
+			http.Error(w, "client not identified", http.StatusUnauthorized)
+			return
+		}
+
+		ch, unsub, ok := mgr.Sessions().Subscribe(coinslotID, clnt.ID())
 		if !ok {
 			http.Error(w, "no active payment session", http.StatusNotFound)
 			return
