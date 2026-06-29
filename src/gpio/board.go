@@ -15,7 +15,7 @@ import "sort"
 type Board struct {
 	Driver    string         // "rpi" | "opi" | "gpiod"
 	OpiBoard  string         // OPi.GPIO board module name (orangepi.<name>); opi only
-	ChipLabel string         // pinctrl label to match a /dev/gpiochipN against; gpiod only
+	ChipLabel string         // pinctrl register-address fragment to match a chip's label (substring); gpiod only
 	Header    map[int]string // physical header pin -> Allwinner port name; gpiod only
 }
 
@@ -27,15 +27,57 @@ type Board struct {
 // and the pinctrl Label of the chip its header GPIOs live on (read with
 // `gpioinfo` / `gpiodetect` on the target).
 var boardRegistry = map[string]Board{
-	"orangepi-one": {Driver: "opi", OpiBoard: "one"}, // Allwinner H3
-	"orangepi-pc":  {Driver: "opi", OpiBoard: "pc"},  // Allwinner H3
+	// Allwinner H3. Uses the gpiod char-device driver (not OPi.GPIO): OPi.GPIO is
+	// a PyPI package that the on-device preinstall can only fetch with internet,
+	// so an offline coin-vendo box fails to install it. gpiod is compiled into
+	// the plugin — no pip, no network. The H3 header GPIOs (banks PA/PC/PD/PG)
+	// live on the "pio" controller at register 1c20800. One and PC share the
+	// same H3 40-pin header map.
+	"orangepi-one": {Driver: "gpiod", ChipLabel: "1c20800", Header: orangePiH3Header},
+	"orangepi-pc":  {Driver: "gpiod", ChipLabel: "1c20800", Header: orangePiH3Header},
 	// Allwinner H618. OPi.GPIO has no zero3 board module and relies on the
 	// removed sysfs interface, so the Zero 3 uses the gpiod char-device driver.
-	// Its 26-pin header GPIOs live on the "pio" controller (banks PC/PH), whose
-	// pinctrl label is 300b000.pinctrl. Header maps physical pin -> port name so
-	// the admin UI can stay in familiar BOARD (physical pin) numbers.
-	"orangepi-zero-3": {Driver: "gpiod", ChipLabel: "300b000.pinctrl", Header: orangePiZero3Header},
+	// Its 26-pin header GPIOs live on the "pio" controller (banks PC/PH) at
+	// register 300b000. Header maps physical pin -> port name so the admin UI
+	// can stay in familiar BOARD (physical pin) numbers.
+	"orangepi-zero-3": {Driver: "gpiod", ChipLabel: "300b000", Header: orangePiZero3Header},
 	"rpi-4":           {Driver: "rpi"},
+}
+
+// orangePiH3Header maps the Allwinner H3 40-pin header's physical pin numbers
+// to their Allwinner port names, shared by the OrangePi One and PC (identical
+// header). Derived from OPi.GPIO's orangepi.pc.BOARD map (global GPIO number ->
+// port name, e.g. 12=PA12, 110=PD14, 68=PC4, 200=PG8), so it reproduces exactly
+// the pin assignments the old OPi.GPIO driver used. Power/ground pins omitted.
+var orangePiH3Header = map[int]string{
+	3:  "PA12",
+	5:  "PA11",
+	7:  "PA6",
+	8:  "PA13",
+	10: "PA14",
+	11: "PA1",
+	12: "PD14",
+	13: "PA0",
+	15: "PA3",
+	16: "PC4",
+	18: "PC7",
+	19: "PC0",
+	21: "PC1",
+	22: "PA2",
+	23: "PC2",
+	24: "PC3",
+	26: "PA21",
+	27: "PA19",
+	28: "PA18",
+	29: "PA7",
+	31: "PA8",
+	32: "PG8",
+	33: "PA9",
+	35: "PA10",
+	36: "PG9",
+	37: "PA20",
+	38: "PG6",
+	40: "PG7",
 }
 
 // orangePiZero3Header maps the OrangePi Zero 3 26-pin (DIP26) header's physical

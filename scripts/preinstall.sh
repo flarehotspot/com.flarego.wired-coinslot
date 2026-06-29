@@ -64,19 +64,22 @@ fi
 log "device_model=${device_model:-unknown}"
 
 case "$device_model" in
-  orangepi-zero-3)
-    # gpiod (char-device) board: GPIO is compiled into the plugin via the Go
-    # go-gpiocdev library, so there is no Python GPIO package to install. Keep
+  orangepi-zero-3 | orangepi-one | orangepi-pc)
+    # gpiod (char-device) boards: GPIO is compiled into the plugin via the Go
+    # go-gpiocdev library, so there is NO Python GPIO package to install — and
+    # therefore no internet dependency at install time (the failure mode that
+    # makes pip-installed OPi.GPIO unreliable on offline coin-vendo boxes). Keep
     # this branch ahead of the orangepi-* glob below. Optionally pull the
     # libgpiod CLI tools (gpiodetect/gpioinfo) for on-device debugging — purely
     # diagnostic, never required at runtime.
-    log "gpiod board — GPIO is built into the plugin; no Python GPIO library needed"
+    log "gpiod board ($device_model) — GPIO is built into the plugin; no Python GPIO library needed"
     if command -v opkg >/dev/null 2>&1; then
       opkg install libgpiod-tools >/dev/null 2>&1 || log "note: libgpiod-tools unavailable (optional debug CLIs); continuing"
     fi
     ;;
   orangepi-*)
-    # Orange Pi: OPi.GPIO is pure-Python, no compiler needed.
+    # Other Orange Pi boards (none in the registry today): OPi.GPIO is
+    # pure-Python, no compiler needed.
     log "installing OPi.GPIO via $PIP (Orange Pi)"
     if ! $PIP install --no-cache-dir "OPi.GPIO"; then
       log "ERROR: failed to install OPi.GPIO"

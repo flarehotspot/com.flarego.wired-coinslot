@@ -185,6 +185,17 @@ func (a *Agent) supervise() {
 				a.logf("python3 not found; coin agent disabled (install system_packages)")
 				return
 			}
+			// Exit code 2 is coin_agent.py's "could not initialize GPIO" signal
+			// (missing RPi/OPi library, unknown board module, invalid/busy pin).
+			// None of these resolve by retrying without a config change, which
+			// triggers a fresh agent via Manager.Reload — so log once and stop
+			// instead of looping every few seconds. The pulse counter keeps
+			// running, so the dev/mock pulse path is unaffected.
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) && exitErr.ExitCode() == 2 {
+				a.logf("coin agent GPIO setup failed; disabled until settings change (check the board's GPIO library is installed and the pins are valid)")
+				return
+			}
 			a.logf("coin agent exited: " + err.Error())
 		}
 

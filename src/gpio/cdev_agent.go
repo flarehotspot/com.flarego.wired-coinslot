@@ -199,8 +199,12 @@ func (a *CdevAgent) logf(msg string) {
 	}
 }
 
-// resolveChip finds the /dev/gpiochipN whose pinctrl label matches want. Going
-// by label (not the /dev name) survives unstable chip numbering across kernels.
+// resolveChip finds the /dev/gpiochipN whose label contains want (a pinctrl
+// register-address fragment such as "1c20800"). Matching by label rather than
+// the /dev name survives unstable chip numbering across kernels; matching a
+// substring rather than the exact label tolerates suffix differences (e.g. a
+// node labeled "1c20800.pinctrl" vs "1c20800.pio") since the register address
+// is fixed by the SoC.
 func resolveChip(want string) (string, error) {
 	if want == "" {
 		return "", fmt.Errorf("no gpiochip label configured for this board")
@@ -212,11 +216,11 @@ func resolveChip(want string) (string, error) {
 		}
 		label := c.Label
 		_ = c.Close()
-		if label == want {
+		if strings.Contains(label, want) {
 			return name, nil
 		}
 	}
-	return "", fmt.Errorf("no gpiochip found with label %q", want)
+	return "", fmt.Errorf("no gpiochip found with label containing %q", want)
 }
 
 // sunxiOffset converts an Allwinner port name (e.g. "PH5") into the line offset
