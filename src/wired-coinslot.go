@@ -14,8 +14,10 @@ import (
 const (
 	WiredCoinslotsPrefix string = "wired_coinslots"
 
-	// Hardware defaults. Pin numbers are physical header pins (BOARD numbering):
-	// pin #3 = coin-acceptor pulse input, pin #5 = relay output.
+	// Hardware defaults. Pin numbers are physical header pins (BOARD numbering)
+	// for every driver: pin #3 = coin-acceptor pulse input, pin #5 = relay
+	// output. The gpiod driver translates these to char-device line offsets
+	// internally (see gpio.Board.Header), so the UI stays in physical pins.
 	DefaultCoinPin     = 3
 	DefaultRelayPin    = 5
 	DefaultRelayActive = 1 // relay value that energizes the coil / accepts coins
@@ -145,7 +147,9 @@ type WiredCoinslot struct {
 	ID   string
 	Name string
 
-	// Hardware configuration (physical BOARD pin numbers).
+	// Hardware configuration (physical BOARD pin numbers). The gpiod driver
+	// translates these to char-device line offsets internally, so the same
+	// physical-pin addressing is used for every board.
 	CoinPin     int    // coin-acceptor pulse input pin
 	RelayPin    int    // relay output pin
 	RelayActive int    // output value (0/1) that energizes the relay
@@ -156,9 +160,8 @@ type WiredCoinslot struct {
 
 	// Board selection override. Empty falls back to auto-detection from
 	// /etc/os_release.json device_model. When set to a known model, the board's
-	// GPIO library and OPi board module are resolved from the registry.
+	// GPIO driver (rpi/opi/gpiod) and parameters are resolved from the registry.
 	BoardModel string // override device_model key (e.g. "orangepi-zero-3")
-	Library    string // resolved GPIO library: "rpi" | "opi" (set from registry/detection)
 
 	Denominations []Denomination
 }

@@ -29,17 +29,58 @@ type Logger interface {
 	Error(message string) error
 }
 
-// Config is serialized to JSON and handed to coin_agent.py as argv[1].
+// Config carries one coinslot's resolved hardware settings. For the Python
+// drivers it is serialized to JSON and handed to coin_agent.py as argv[1]; the
+// gpiod driver reads it directly in-process. Pin fields apply to rpi/opi
+// (BOARD numbering); line fields apply to gpiod (Allwinner port names).
 type Config struct {
-	Library     string `json:"library"`
-	Board       string `json:"board"`
-	CoinPin     int    `json:"coin_pin"`
-	RelayPin    int    `json:"relay_pin"`
+	Driver  string `json:"driver"`  // "rpi" | "opi" | "gpiod" (Go-side selection)
+	Library string `json:"library"` // "rpi" | "opi" (what coin_agent.py imports)
+	Board   string `json:"board"`   // OPi.GPIO board module (opi only)
+
+	// Physical header (BOARD) pin numbers — the operator-facing addressing for
+	// every driver. rpi/opi pass these straight through; gpiod translates them
+	// to char-device line offsets via Header below.
+	CoinPin  int `json:"coin_pin"`
+	RelayPin int `json:"relay_pin"`
+
+	// gpiod only: the char-device chip (matched by pinctrl label) and the
+	// board's physical-pin -> Allwinner port-name map used to resolve CoinPin/
+	// RelayPin to line offsets. Not serialized — gpiod never goes through Python.
+	ChipLabel string         `json:"chip_label"`
+	Header    map[int]string `json:"-"`
+
+	// Shared signal/relay settings.
 	Pull        string `json:"pull"`
 	Edge        string `json:"edge"`
 	DebounceMs  int    `json:"debounce_ms"`
 	RelayActive int    `json:"relay_active"`
 }
+
+// CoinAgent is the hardware surface the Manager drives, regardless of the
+// underlying GPIO mechanism. Both the Python supervisor (*Agent) and the
+// pure-Go char-device agent (*CdevAgent) implement it, so the Manager is
+// driver-agnostic.
+type CoinAgent interface {
+	Pulses() <-chan struct{}
+	Start() error
+	Stop()
+	OpenRelay()
+	CloseRelay()
+}
+
+// NewCoinAgent builds the right agent for the resolved driver. gpiod runs
+// in-process (no Python); everything else falls back to the supervised
+// coin_agent.py.
+func NewCoinAgent(cfg Config, logger Logger) CoinAgent {
+	if cfg.Driver == "gpiod" {
+		return NewCdevAgent(cfg, logger)
+	}
+	return NewAgent(cfg, logger)
+}
+
+// Compile-time guarantee that the Python supervisor satisfies the interface.
+var _ CoinAgent = (*Agent)(nil)
 
 type event struct {
 	Event string `json:"event"`

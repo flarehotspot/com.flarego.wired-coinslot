@@ -17,10 +17,14 @@
 #
 # This is BOARD-AWARE: it reads /etc/os_release.json device_model and installs
 # only the library the coin agent will actually import, mirroring the Go-side
-# board detection (src/gpio/board.go DetectBoard): "orangepi-*" -> OPi.GPIO
-# (pure-Python, no compiler); anything else (rpi-*, or unknown -> the rpi
-# fallback) -> RPi.GPIO (a C extension that compiles from source, so it needs
-# gcc + python3-dev, installed on demand only on that branch).
+# board detection (src/gpio/board.go DetectBoard):
+#   - "gpiod" boards (e.g. orangepi-zero-3, Allwinner H618) -> NOTHING. Their
+#     GPIO is driven in-process by the Go go-gpiocdev library compiled into the
+#     plugin, so there is no Python GPIO library (or even python3) to install.
+#   - "orangepi-*" (the older sysfs boards) -> OPi.GPIO (pure-Python, no compiler).
+#   - anything else (rpi-*, or unknown -> the rpi fallback) -> RPi.GPIO (a C
+#     extension that compiles from source, so it needs gcc + python3-dev,
+#     installed on demand only on that branch).
 #
 # This runs on every (re)install/update; pip is idempotent ("already satisfied").
 
@@ -60,6 +64,17 @@ fi
 log "device_model=${device_model:-unknown}"
 
 case "$device_model" in
+  orangepi-zero-3)
+    # gpiod (char-device) board: GPIO is compiled into the plugin via the Go
+    # go-gpiocdev library, so there is no Python GPIO package to install. Keep
+    # this branch ahead of the orangepi-* glob below. Optionally pull the
+    # libgpiod CLI tools (gpiodetect/gpioinfo) for on-device debugging — purely
+    # diagnostic, never required at runtime.
+    log "gpiod board — GPIO is built into the plugin; no Python GPIO library needed"
+    if command -v opkg >/dev/null 2>&1; then
+      opkg install libgpiod-tools >/dev/null 2>&1 || log "note: libgpiod-tools unavailable (optional debug CLIs); continuing"
+    fi
+    ;;
   orangepi-*)
     # Orange Pi: OPi.GPIO is pure-Python, no compiler needed.
     log "installing OPi.GPIO via $PIP (Orange Pi)"

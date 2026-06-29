@@ -15,7 +15,7 @@ const osReleaseFile = "/etc/os_release.json"
 // coinslotRuntime bundles the live hardware objects for one coinslot.
 type coinslotRuntime struct {
 	coinslot *WiredCoinslot
-	agent    *gpio.Agent
+	agent    gpio.CoinAgent
 	counter  *PulseCounter
 }
 
@@ -128,12 +128,9 @@ func (m *Manager) startAll() {
 
 func (m *Manager) startCoinslot(c *WiredCoinslot) {
 	board := gpio.DetectBoard(m.modelFor(c))
-	if c.Library != "" {
-		board.Library = c.Library
-	}
 
 	cfg := gpio.Config{
-		Library:     board.Library,
+		Driver:      board.Driver,
 		Board:       board.OpiBoard,
 		CoinPin:     c.CoinPin,
 		RelayPin:    c.RelayPin,
@@ -142,8 +139,18 @@ func (m *Manager) startCoinslot(c *WiredCoinslot) {
 		DebounceMs:  c.DebounceMs,
 		RelayActive: c.RelayActive,
 	}
+	if board.Driver == "gpiod" {
+		// Char-device driver: resolve the same physical pins to line offsets
+		// internally via the board's header map + chip (matched by label).
+		cfg.ChipLabel = board.ChipLabel
+		cfg.Header = board.Header
+	} else {
+		// Python rpi/opi drivers use BOARD pin numbers directly; Library is what
+		// coin_agent.py imports ("rpi" or "opi").
+		cfg.Library = board.Driver
+	}
 
-	agent := gpio.NewAgent(cfg, m.api.Logger())
+	agent := gpio.NewCoinAgent(cfg, m.api.Logger())
 	if err := agent.Start(); err != nil {
 		_ = m.api.Logger().Error("[wired-coinslot] failed to start gpio agent for " + c.Name + ": " + err.Error())
 		return
