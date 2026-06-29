@@ -46,7 +46,7 @@ func InsertCoinHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 		c.UseBy(clnt.ID())
 
 		if mgr := GetManager(); mgr != nil {
-			mgr.Sessions().Begin(coinslotID, clnt.ID(), purchase)
+			mgr.Sessions().Begin(coinslotID, clnt.ID(), purchase, c.PaymentTimeoutSecs)
 		}
 
 		res.PortalView(w, r, sdkapi.ViewPage{
@@ -162,6 +162,67 @@ func DonePayingHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 		}
 
 		purchase.RedirectToCallback(w, r)
+	}
+}
+
+// CancelPayingHandler finalizes a payment session in which no money was inserted
+// before the idle countdown elapsed (or the client otherwise gave up): it ends
+// the session (closes the relay, releases the coinslot) and cancels the purchase
+// (Execute with Success=false → the callback plugin calls Cancel), then redirects
+// the client back to the portal. It is the no-payment counterpart of
+// DonePayingHandler and is invoked by the insert-coin page when its countdown
+// reaches zero with a zero balance.
+func CancelPayingHandler(api sdkapi.IPluginApi) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res := api.Http().Response()
+		ctx := r.Context()
+
+		clnt, err := api.Http().GetClientDevice(r)
+		if err != nil {
+			res.Error(w, r, err, http.StatusInternalServerError)
+			return
+		}
+
+		c, err := FindUsedCoinslot(api, clnt.ID())
+		if err != nil {
+			res.Error(w, r, err, http.StatusInternalServerError)
+			return
+		}
+		// No active session (already finalized, e.g. a coin landed and the page
+		// raced to done): just return the client to the portal cleanly.
+		if c == nil {
+			res.RedirectToPortal(w, r)
+			return
+		}
+
+		// End the session first so the relay is closed even if the purchase lookup
+		// or cancellation below fails.
+		if mgr := GetManager(); mgr != nil {
+			mgr.Sessions().End(c.GetID())
+		} else {
+			c.DoneUsing()
+		}
+
+		purchase, err := api.Payments().GetPurchaseRequest(r)
+		if err != nil {
+			// Session is already torn down; nothing left to cancel — send the client
+			// home rather than surfacing an error page for an abandoned purchase.
+			res.RedirectToPortal(w, r)
+			return
+		}
+
+		// Cancel the purchase. Success=false routes the callback plugin's execute
+		// handler to purchase.Cancel(). A failure here is non-fatal to the user
+		// flow (the relay is already closed), so log and still return to the portal.
+		if err := purchase.Execute(ctx, sdkapi.ExecuteParams{
+			Amount:  0,
+			Success: false,
+			Message: "Payment timed out before any coins were inserted",
+		}); err != nil {
+			_ = api.Logger().Error("[wired-coinslot] failed to cancel timed-out purchase: " + err.Error())
+		}
+
+		res.RedirectToPortal(w, r)
 	}
 }
 

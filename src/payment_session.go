@@ -19,11 +19,19 @@ type RelayController interface {
 }
 
 // CoinEvent is the SSE payload pushed to the insert-coin page on every coin.
+//
+// Counting marks the leading-edge "a coin's pulses are arriving" signal that
+// precedes the resolved amount, so the page can show an immediate cue. Any event
+// with Counting=true or LastCoin>0 (and the initial snapshot) carries the live
+// TimeoutSecs, which the page uses to (re)start its idle countdown — the
+// countdown therefore resets on every real pulse/coin.
 type CoinEvent struct {
-	Total      float64 `json:"total"`
-	LastCoin   float64 `json:"last_coin"`
-	Price      float64 `json:"price"`
-	Sufficient bool    `json:"sufficient"`
+	Total       float64 `json:"total"`
+	LastCoin    float64 `json:"last_coin"`
+	Price       float64 `json:"price"`
+	Sufficient  bool    `json:"sufficient"`
+	Counting    bool    `json:"counting"`
+	TimeoutSecs int     `json:"timeout_secs"`
 }
 
 // PaymentSessionManager tracks the at-most-one active paying client per coinslot
@@ -38,11 +46,12 @@ type PaymentSessionManager struct {
 }
 
 type paymentSession struct {
-	coinslotID string
-	clientID   int64
-	purchase   sdkapi.IPurchaseRequest
-	price      float64
-	fixedPrice bool
+	coinslotID  string
+	clientID    int64
+	purchase    sdkapi.IPurchaseRequest
+	price       float64
+	fixedPrice  bool
+	timeoutSecs int
 
 	mu         sync.Mutex
 	total      float64
@@ -59,23 +68,26 @@ func NewPaymentSessionManager(api sdkapi.IPluginApi, relays RelayController) *Pa
 }
 
 // Begin starts (or resumes) a paying session for a client on a coinslot and
-// opens the relay so coins are accepted.
-func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest) {
+// opens the relay so coins are accepted. timeoutSecs is the page's idle
+// countdown, broadcast to the client so it can auto-finalize when it elapses.
+func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest, timeoutSecs int) {
 	m.mu.Lock()
 	if s, ok := m.byID[coinslotID]; ok && s.clientID == clientID {
 		s.purchase = purchase
+		s.timeoutSecs = timeoutSecs
 		m.mu.Unlock()
 		s.cancelGrace()
 		m.relays.OpenRelay(coinslotID)
 		return
 	}
 	m.byID[coinslotID] = &paymentSession{
-		coinslotID: coinslotID,
-		clientID:   clientID,
-		purchase:   purchase,
-		price:      purchase.Price(),
-		fixedPrice: purchase.IsFixedPrice(),
-		subs:       map[chan CoinEvent]struct{}{},
+		coinslotID:  coinslotID,
+		clientID:    clientID,
+		purchase:    purchase,
+		price:       purchase.Price(),
+		fixedPrice:  purchase.IsFixedPrice(),
+		timeoutSecs: timeoutSecs,
+		subs:        map[chan CoinEvent]struct{}{},
 	}
 	m.mu.Unlock()
 	m.relays.OpenRelay(coinslotID)
@@ -101,6 +113,22 @@ func (m *PaymentSessionManager) Credit(coinslotID string, amount float64) {
 	s.mu.Lock()
 	s.total += amount
 	ev := s.snapshotLocked(amount)
+	s.broadcastLocked(ev)
+	s.mu.Unlock()
+}
+
+// Counting signals that a coin's pulse train has started arriving but its amount
+// isn't resolved yet. It broadcasts a Counting event (no money recorded) so the
+// page can show an immediate "counting" cue and reset its idle countdown on the
+// very first pulse, well before the resolved coin value follows.
+func (m *PaymentSessionManager) Counting(coinslotID string) {
+	s := m.get(coinslotID)
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	ev := s.snapshotLocked(0)
+	ev.Counting = true
 	s.broadcastLocked(ev)
 	s.mu.Unlock()
 }
@@ -183,10 +211,11 @@ func (m *PaymentSessionManager) get(coinslotID string) *paymentSession {
 
 func (s *paymentSession) snapshotLocked(lastCoin float64) CoinEvent {
 	return CoinEvent{
-		Total:      s.total,
-		LastCoin:   lastCoin,
-		Price:      s.price,
-		Sufficient: s.sufficientLocked(),
+		Total:       s.total,
+		LastCoin:    lastCoin,
+		Price:       s.price,
+		Sufficient:  s.sufficientLocked(),
+		TimeoutSecs: s.timeoutSecs,
 	}
 }
 

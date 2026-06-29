@@ -19,6 +19,22 @@ This plugin is a **separate, gitignored repo** (the parent flarewifi repo won't 
    boots CLOSED. Most acceptors are **inhibited while the relay is closed**, so coins only pulse during an
    active payment session — keep this in mind when testing ("no pulses" is often "relay was closed").
 
+### "Counting payment" cue + idle countdown (insert-coin page UX)
+
+- **Counting cue:** a coin's pulse burst takes `WindowMs` of silence to resolve into an amount, so there's a
+  visible gap between "coin dropped" and "Received N". `PulseCounter` fires a second callback `onCounting`
+  on the **leading edge** (count 0→1) of each burst → `PaymentSessionManager.Counting` broadcasts a
+  `CoinEvent{Counting:true}` (no money recorded) so the page shows "Counting payment…" immediately, then the
+  resolved `Credit` event (`counting:false, last_coin>0`) overwrites it with the real value.
+- **Idle countdown / auto-finalize:** `WiredCoinslot.PaymentTimeoutSecs` (default 30, adjustable in
+  Settings → Payment) is broadcast in every `CoinEvent.TimeoutSecs`. The page runs the countdown and
+  **resets it on every pulse/coin** (each `Counting` and `last_coin>0` event). On expiry the page navigates:
+  total>0 → `payments.done` (executes the accumulated amount), total==0 → `payments.cancel`
+  (`CancelPayingHandler` → `Execute{Success:false}` → wifi-hotspot calls `purchase.Cancel`). The clock is
+  authoritative on the **server** (only it sees real pulses) but the *navigation* is client-side because
+  only an HTTP handler can call `RedirectToCallback` (it mints a core-internal JWT). This is safe because
+  **relay-open ⟺ SSE-subscribed ⟺ page JS running**, so the countdown can't be bypassed by killing JS.
+
 ## GPIO architecture — TWO drivers behind one interface
 
 `gpio.CoinAgent` (in `src/gpio/agent.go`) is the interface the `Manager` drives: `Pulses() / Start() /

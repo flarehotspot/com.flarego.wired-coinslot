@@ -11,6 +11,7 @@ templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, co
 	{{
 		eventsURL := api.Http().Helpers().UrlForRoute("payments.coin_events", "id", coinslotID)
 		doneURL := api.Http().Helpers().UrlForRoute("payments.done")
+		cancelURL := api.Http().Helpers().UrlForRoute("payments.cancel")
 		price := purchase.Price()
 		fixed := purchase.IsFixedPrice()
 	}}
@@ -19,8 +20,11 @@ templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, co
 		data-events-url={ eventsURL }
 		data-mock-url={ mockURL }
 		data-done-url={ doneURL }
+		data-cancel-url={ cancelURL }
 		data-price={ fmt.Sprintf("%.2f", price) }
 		data-fixed={ fmt.Sprintf("%t", fixed) }
+		data-counting-text={ api.Translate("info", "Counting payment...") }
+		data-received-text={ api.Translate("info", "Received {amount}") }
 	>
 		<h1>{ api.Translate("label", "Insert Coin") }</h1>
 		<hr/>
@@ -31,6 +35,9 @@ templ InsertCoinPage(api sdkapi.IPluginApi, purchase sdkapi.IPurchaseRequest, co
 			}
 		</p>
 		<p id="coin-status">{ api.Translate("info", "Waiting for coins...") }</p>
+		<p id="coin-countdown-wrap" class="text-muted">
+			{ api.Translate("info", "Finishing automatically in") } <span id="coin-countdown">--</span>s
+		</p>
 		if mockURL != "" {
 			<button type="button" class="btn btn-default" id="mock-coin-btn">
 				{ api.Translate("label", "Mock Insert Coin") }

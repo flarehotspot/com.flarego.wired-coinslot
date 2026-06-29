@@ -162,6 +162,7 @@ func (m *Manager) startCoinslot(c *WiredCoinslot) {
 		c.Denominations,
 		agent.Pulses(),
 		func(amount float64) { m.sessions.Credit(coinslotID, amount) },
+		func() { m.sessions.Counting(coinslotID) },
 	)
 	go counter.Run()
 

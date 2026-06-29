@@ -29,17 +29,18 @@ func ListCoinslotsHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 				continue
 			}
 			items = append(items, views.CoinslotSettingsData{
-				ID:            c.ID,
-				Name:          c.Name,
-				CoinPin:       c.CoinPin,
-				RelayPin:      c.RelayPin,
-				RelayActive:   c.RelayActive,
-				Pull:          c.Pull,
-				Edge:          c.Edge,
-				DebounceMs:    c.DebounceMs,
-				WindowMs:      c.WindowMs,
-				BoardModel:    c.BoardModel,
-				Denominations: denominationsToViewData(c.Denominations),
+				ID:                 c.ID,
+				Name:               c.Name,
+				CoinPin:            c.CoinPin,
+				RelayPin:           c.RelayPin,
+				RelayActive:        c.RelayActive,
+				Pull:               c.Pull,
+				Edge:               c.Edge,
+				DebounceMs:         c.DebounceMs,
+				WindowMs:           c.WindowMs,
+				PaymentTimeoutSecs: c.PaymentTimeoutSecs,
+				BoardModel:         c.BoardModel,
+				Denominations:      denominationsToViewData(c.Denominations),
 			})
 		}
 
@@ -81,6 +82,7 @@ func SaveCoinslotSettingsHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 		c.RelayActive = atoiDefault(r.FormValue("relay_active"), c.RelayActive)
 		c.DebounceMs = atoiDefault(r.FormValue("debounce_ms"), c.DebounceMs)
 		c.WindowMs = atoiDefault(r.FormValue("window_ms"), c.WindowMs)
+		c.PaymentTimeoutSecs = atoiDefault(r.FormValue("payment_timeout_secs"), c.PaymentTimeoutSecs)
 		c.Pull = r.FormValue("pull")
 		c.Edge = r.FormValue("edge")
 		c.BoardModel = strings.TrimSpace(r.FormValue("board_model"))

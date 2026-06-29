@@ -25,6 +25,11 @@ const (
 	DefaultEdge        = "falling"
 	DefaultDebounceMs  = 30
 	DefaultWindowMs    = 400
+
+	// DefaultPaymentTimeoutSecs is the idle countdown shown on the insert-coin
+	// page. It resets on every coin/pulse; on expiry the page auto-finalizes
+	// (executes the accumulated payment) or cancels if nothing was inserted.
+	DefaultPaymentTimeoutSecs = 30
 )
 
 // DefaultDenominations covers the common Philippine coin set where the acceptor
@@ -158,6 +163,11 @@ type WiredCoinslot struct {
 	DebounceMs  int    // hardware debounce for the coin pin
 	WindowMs    int    // idle window (ms) to finish counting a coin's pulses
 
+	// PaymentTimeoutSecs is the insert-coin page's idle countdown (seconds). It
+	// resets on each coin/pulse; on expiry the page auto-finalizes the payment
+	// (or cancels if nothing was inserted).
+	PaymentTimeoutSecs int
+
 	// Board selection override. Empty falls back to auto-detection from
 	// /etc/os_release.json device_model. When set to a known model, the board's
 	// GPIO driver (rpi/opi/gpiod) and parameters are resolved from the registry.
@@ -180,6 +190,7 @@ func (c *WiredCoinslot) ApplyDefaults() {
 		c.Edge = DefaultEdge
 		c.DebounceMs = DefaultDebounceMs
 		c.WindowMs = DefaultWindowMs
+		c.PaymentTimeoutSecs = DefaultPaymentTimeoutSecs
 		c.Denominations = DefaultDenominations()
 		return
 	}
@@ -200,6 +211,9 @@ func (c *WiredCoinslot) ApplyDefaults() {
 	}
 	if c.WindowMs == 0 {
 		c.WindowMs = DefaultWindowMs
+	}
+	if c.PaymentTimeoutSecs == 0 {
+		c.PaymentTimeoutSecs = DefaultPaymentTimeoutSecs
 	}
 	if len(c.Denominations) == 0 {
 		c.Denominations = DefaultDenominations()
