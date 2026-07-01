@@ -11,6 +11,7 @@ func SetRoutes(api sdkapi.IPluginApi) {
 		subrouter.Get("/insert-coin/{id}", InsertCoinHandler(api)).Name("payments.insert_coin")
 		subrouter.Get("/coin-events/{id}", CoinEventsHandler(api)).Name("payments.coin_events")
 		subrouter.Get("/done", DonePayingHandler(api)).Name("payments.done")
+		subrouter.Get("/cancel", CancelPayingHandler(api)).Name("payments.cancel")
 
 		// Synthetic-coin endpoint, registered only in dev builds (no-op in prod).
 		RegisterMockRoutes(api, subrouter)

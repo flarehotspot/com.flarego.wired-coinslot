@@ -14,8 +14,10 @@ import (
 const (
 	WiredCoinslotsPrefix string = "wired_coinslots"
 
-	// Hardware defaults. Pin numbers are physical header pins (BOARD numbering):
-	// pin #3 = coin-acceptor pulse input, pin #5 = relay output.
+	// Hardware defaults. Pin numbers are physical header pins (BOARD numbering)
+	// for every driver: pin #3 = coin-acceptor pulse input, pin #5 = relay
+	// output. The gpiod driver translates these to char-device line offsets
+	// internally (see gpio.Board.Header), so the UI stays in physical pins.
 	DefaultCoinPin     = 3
 	DefaultRelayPin    = 5
 	DefaultRelayActive = 1 // relay value that energizes the coil / accepts coins
@@ -23,6 +25,11 @@ const (
 	DefaultEdge        = "falling"
 	DefaultDebounceMs  = 30
 	DefaultWindowMs    = 400
+
+	// DefaultPaymentTimeoutSecs is the idle countdown shown on the insert-coin
+	// page. It resets on every coin/pulse; on expiry the page auto-finalizes
+	// (executes the accumulated payment) or cancels if nothing was inserted.
+	DefaultPaymentTimeoutSecs = 30
 )
 
 // DefaultDenominations covers the common Philippine coin set where the acceptor
@@ -145,7 +152,9 @@ type WiredCoinslot struct {
 	ID   string
 	Name string
 
-	// Hardware configuration (physical BOARD pin numbers).
+	// Hardware configuration (physical BOARD pin numbers). The gpiod driver
+	// translates these to char-device line offsets internally, so the same
+	// physical-pin addressing is used for every board.
 	CoinPin     int    // coin-acceptor pulse input pin
 	RelayPin    int    // relay output pin
 	RelayActive int    // output value (0/1) that energizes the relay
@@ -154,11 +163,15 @@ type WiredCoinslot struct {
 	DebounceMs  int    // hardware debounce for the coin pin
 	WindowMs    int    // idle window (ms) to finish counting a coin's pulses
 
+	// PaymentTimeoutSecs is the insert-coin page's idle countdown (seconds). It
+	// resets on each coin/pulse; on expiry the page auto-finalizes the payment
+	// (or cancels if nothing was inserted).
+	PaymentTimeoutSecs int
+
 	// Board selection override. Empty falls back to auto-detection from
 	// /etc/os_release.json device_model. When set to a known model, the board's
-	// GPIO library and OPi board module are resolved from the registry.
+	// GPIO driver (rpi/opi/gpiod) and parameters are resolved from the registry.
 	BoardModel string // override device_model key (e.g. "orangepi-zero-3")
-	Library    string // resolved GPIO library: "rpi" | "opi" (set from registry/detection)
 
 	Denominations []Denomination
 }
@@ -177,6 +190,7 @@ func (c *WiredCoinslot) ApplyDefaults() {
 		c.Edge = DefaultEdge
 		c.DebounceMs = DefaultDebounceMs
 		c.WindowMs = DefaultWindowMs
+		c.PaymentTimeoutSecs = DefaultPaymentTimeoutSecs
 		c.Denominations = DefaultDenominations()
 		return
 	}
@@ -198,6 +212,9 @@ func (c *WiredCoinslot) ApplyDefaults() {
 	if c.WindowMs == 0 {
 		c.WindowMs = DefaultWindowMs
 	}
+	if c.PaymentTimeoutSecs == 0 {
+		c.PaymentTimeoutSecs = DefaultPaymentTimeoutSecs
+	}
 	if len(c.Denominations) == 0 {
 		c.Denominations = DefaultDenominations()
 	}
@@ -215,22 +232,35 @@ func (c *WiredCoinslot) GetName() string {
 	return c.Name
 }
 
-func (c *WiredCoinslot) CanBeUsedBy(deviceID int64) bool {
-	if v, ok := UsedCoinslots.Load(c.ID); ok {
-		if v.(int64) == deviceID {
-			return true
-		}
-		return false
-	}
-	return true
+// TryUseBy atomically claims the coinslot for deviceID and reports whether the
+// caller now holds it. LoadOrStore makes the check-and-claim a single atomic
+// step, closing the check-then-act race that a separate CanBeUsedBy()+UseBy()
+// left open (two clients could both see "free" before either stored). It returns
+// true when the slot was free (claimed now) or already held by the same device
+// (idempotent re-entry, e.g. a page refresh), and false when a different device
+// currently holds it.
+func (c *WiredCoinslot) TryUseBy(deviceID int64) bool {
+	actual, _ := UsedCoinslots.LoadOrStore(c.ID, deviceID)
+	return actual.(int64) == deviceID
 }
 
-func (c *WiredCoinslot) UseBy(deviceID int64) {
-	UsedCoinslots.Store(c.ID, deviceID)
+// IsUsedBy reports whether deviceID currently holds this coinslot's claim. It is
+// the read-only ownership check used to re-validate a claim without mutating it.
+func (c *WiredCoinslot) IsUsedBy(deviceID int64) bool {
+	v, ok := UsedCoinslots.Load(c.ID)
+	return ok && v.(int64) == deviceID
 }
 
 func (c *WiredCoinslot) DoneUsing() {
 	UsedCoinslots.Delete(c.ID)
+}
+
+// ReleaseIfOwner deletes this coinslot's claim only if deviceID still holds it.
+// It lets a caller safely back out of its own claim without risking deleting a
+// claim that has meanwhile been taken by another device (CompareAndDelete is a
+// no-op when the current value differs).
+func (c *WiredCoinslot) ReleaseIfOwner(deviceID int64) {
+	UsedCoinslots.CompareAndDelete(c.ID, deviceID)
 }
 
 func (c *WiredCoinslot) Save() error {

@@ -19,11 +19,19 @@ type RelayController interface {
 }
 
 // CoinEvent is the SSE payload pushed to the insert-coin page on every coin.
+//
+// Counting marks the leading-edge "a coin's pulses are arriving" signal that
+// precedes the resolved amount, so the page can show an immediate cue. Any event
+// with Counting=true or LastCoin>0 (and the initial snapshot) carries the live
+// TimeoutSecs, which the page uses to (re)start its idle countdown — the
+// countdown therefore resets on every real pulse/coin.
 type CoinEvent struct {
-	Total      float64 `json:"total"`
-	LastCoin   float64 `json:"last_coin"`
-	Price      float64 `json:"price"`
-	Sufficient bool    `json:"sufficient"`
+	Total       float64 `json:"total"`
+	LastCoin    float64 `json:"last_coin"`
+	Price       float64 `json:"price"`
+	Sufficient  bool    `json:"sufficient"`
+	Counting    bool    `json:"counting"`
+	TimeoutSecs int     `json:"timeout_secs"`
 }
 
 // PaymentSessionManager tracks the at-most-one active paying client per coinslot
@@ -38,11 +46,12 @@ type PaymentSessionManager struct {
 }
 
 type paymentSession struct {
-	coinslotID string
-	clientID   int64
-	purchase   sdkapi.IPurchaseRequest
-	price      float64
-	fixedPrice bool
+	coinslotID  string
+	clientID    int64
+	purchase    sdkapi.IPurchaseRequest
+	price       float64
+	fixedPrice  bool
+	timeoutSecs int
 
 	mu         sync.Mutex
 	total      float64
@@ -59,26 +68,47 @@ func NewPaymentSessionManager(api sdkapi.IPluginApi, relays RelayController) *Pa
 }
 
 // Begin starts (or resumes) a paying session for a client on a coinslot and
-// opens the relay so coins are accepted.
-func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest) {
+// opens the relay so coins are accepted. timeoutSecs is the page's idle
+// countdown, broadcast to the client so it can auto-finalize when it elapses.
+//
+// It re-validates the claim independently of the caller: only the device that
+// holds the coinslot claim (the atomic UsedCoinslots entry) may start/resume a
+// session, and an existing session for a different client is never clobbered. It
+// returns false if the caller does not own the claim or another client already
+// holds the session — defense in depth behind the atomic claim in TryUseBy.
+func (m *PaymentSessionManager) Begin(coinslotID string, clientID int64, purchase sdkapi.IPurchaseRequest, timeoutSecs int) bool {
+	// Re-check ownership against the atomic claim map.
+	if v, ok := UsedCoinslots.Load(coinslotID); !ok || v.(int64) != clientID {
+		return false
+	}
+
 	m.mu.Lock()
-	if s, ok := m.byID[coinslotID]; ok && s.clientID == clientID {
+	if s, ok := m.byID[coinslotID]; ok {
+		if s.clientID != clientID {
+			// A session already belongs to a different client — refuse rather
+			// than overwrite it (should be unreachable given the atomic claim).
+			m.mu.Unlock()
+			return false
+		}
 		s.purchase = purchase
+		s.timeoutSecs = timeoutSecs
 		m.mu.Unlock()
 		s.cancelGrace()
 		m.relays.OpenRelay(coinslotID)
-		return
+		return true
 	}
 	m.byID[coinslotID] = &paymentSession{
-		coinslotID: coinslotID,
-		clientID:   clientID,
-		purchase:   purchase,
-		price:      purchase.Price(),
-		fixedPrice: purchase.IsFixedPrice(),
-		subs:       map[chan CoinEvent]struct{}{},
+		coinslotID:  coinslotID,
+		clientID:    clientID,
+		purchase:    purchase,
+		price:       purchase.Price(),
+		fixedPrice:  purchase.IsFixedPrice(),
+		timeoutSecs: timeoutSecs,
+		subs:        map[chan CoinEvent]struct{}{},
 	}
 	m.mu.Unlock()
 	m.relays.OpenRelay(coinslotID)
+	return true
 }
 
 // Credit records an accepted coin against the active session's purchase and
@@ -105,12 +135,31 @@ func (m *PaymentSessionManager) Credit(coinslotID string, amount float64) {
 	s.mu.Unlock()
 }
 
-// Subscribe attaches an SSE listener. The returned unsubscribe func must be
-// called when the connection ends; when the last subscriber leaves, the relay is
-// closed and a grace timer is armed to end the session.
-func (m *PaymentSessionManager) Subscribe(coinslotID string) (<-chan CoinEvent, func(), bool) {
+// Counting signals that a coin's pulse train has started arriving but its amount
+// isn't resolved yet. It broadcasts a Counting event (no money recorded) so the
+// page can show an immediate "counting" cue and reset its idle countdown on the
+// very first pulse, well before the resolved coin value follows.
+func (m *PaymentSessionManager) Counting(coinslotID string) {
 	s := m.get(coinslotID)
 	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	ev := s.snapshotLocked(0)
+	ev.Counting = true
+	s.broadcastLocked(ev)
+	s.mu.Unlock()
+}
+
+// Subscribe attaches an SSE listener for clientID. The returned unsubscribe func
+// must be called when the connection ends; when the last subscriber leaves, the
+// relay is closed and a grace timer is armed to end the session. It re-validates
+// ownership: only the client that owns the session may subscribe (and thus hold
+// the relay open), so a racing/stale request for someone else's session is
+// refused with ok=false.
+func (m *PaymentSessionManager) Subscribe(coinslotID string, clientID int64) (<-chan CoinEvent, func(), bool) {
+	s := m.get(coinslotID)
+	if s == nil || s.clientID != clientID {
 		return nil, nil, false
 	}
 
@@ -183,10 +232,11 @@ func (m *PaymentSessionManager) get(coinslotID string) *paymentSession {
 
 func (s *paymentSession) snapshotLocked(lastCoin float64) CoinEvent {
 	return CoinEvent{
-		Total:      s.total,
-		LastCoin:   lastCoin,
-		Price:      s.price,
-		Sufficient: s.sufficientLocked(),
+		Total:       s.total,
+		LastCoin:    lastCoin,
+		Price:       s.price,
+		Sufficient:  s.sufficientLocked(),
+		TimeoutSecs: s.timeoutSecs,
 	}
 }
 

@@ -16,22 +16,29 @@ type Denomination struct {
 // emits a burst of pulses; after an idle window with no further pulses, the
 // accumulated count is resolved into an amount and reported via onCoin.
 type PulseCounter struct {
-	window time.Duration
-	denoms []Denomination
-	input  <-chan struct{}
-	inject chan struct{}
-	onCoin func(amount float64)
-	stop   chan struct{}
+	window     time.Duration
+	denoms     []Denomination
+	input      <-chan struct{}
+	inject     chan struct{}
+	onCoin     func(amount float64)
+	onCounting func()
+	stop       chan struct{}
 }
 
-func NewPulseCounter(window time.Duration, denoms []Denomination, input <-chan struct{}, onCoin func(amount float64)) *PulseCounter {
+// NewPulseCounter wires a pulse source to two callbacks: onCounting fires once on
+// the leading edge of a coin's pulse burst (the moment counting begins, before
+// the amount is known) so the UI can show an immediate "counting" cue; onCoin
+// fires after the idle window resolves the burst into a monetary amount. Either
+// callback may be nil.
+func NewPulseCounter(window time.Duration, denoms []Denomination, input <-chan struct{}, onCoin func(amount float64), onCounting func()) *PulseCounter {
 	return &PulseCounter{
-		window: window,
-		denoms: denoms,
-		input:  input,
-		inject: make(chan struct{}, pulseBufferSize),
-		onCoin: onCoin,
-		stop:   make(chan struct{}),
+		window:     window,
+		denoms:     denoms,
+		input:      input,
+		inject:     make(chan struct{}, pulseBufferSize),
+		onCoin:     onCoin,
+		onCounting: onCounting,
+		stop:       make(chan struct{}),
 	}
 }
 
@@ -64,11 +71,9 @@ func (p *PulseCounter) Run() {
 			timer.Stop()
 			return
 		case <-p.input:
-			count++
-			resetTimer(timer, p.window)
+			p.onPulse(&count, timer)
 		case <-p.inject:
-			count++
-			resetTimer(timer, p.window)
+			p.onPulse(&count, timer)
 		case <-timer.C:
 			if count > 0 {
 				amount := resolveAmount(count, p.denoms)
@@ -88,6 +93,17 @@ func (p *PulseCounter) Stop() {
 // =============================================================================
 // HELPER FUNCTIONS (internal)
 // =============================================================================
+
+// onPulse accounts for one pulse and (re)arms the idle window. On the leading
+// edge of a new burst (count 0 -> 1) it signals onCounting so the UI can show a
+// "counting" cue before the amount is resolved.
+func (p *PulseCounter) onPulse(count *int, timer *time.Timer) {
+	if *count == 0 && p.onCounting != nil {
+		p.onCounting()
+	}
+	*count++
+	resetTimer(timer, p.window)
+}
 
 // resetTimer safely drains and resets the idle-window timer.
 func resetTimer(timer *time.Timer, d time.Duration) {
