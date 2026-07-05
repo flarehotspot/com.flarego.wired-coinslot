@@ -44,6 +44,11 @@ templ hardwareCard(api sdkapi.IPluginApi, deviceModel string, boardModels []stri
 					<label class="form-label fw-medium">{ api.Translate("label", "Name") }</label>
 					<input type="text" class="form-control" name="name" value={ item.Name }/>
 				</div>
+				<div class="mb-4" style="max-width: 32rem;">
+					<label class="form-label fw-medium">{ api.Translate("label", "Payment Method") }</label>
+					<input type="text" class="form-control" name="alias" value={ item.Alias } maxlength="16"/>
+					<div class="form-text">{ api.Translate("info", "Optional label (max 16 characters). Appears as the payment method in transactions and sales inventory. Falls back to \"Coinslot\" when empty.") }</div>
+				</div>
 
 				<h6 class="text-uppercase text-secondary fw-bold small mb-3">{ api.Translate("label", "GPIO Wiring") }</h6>
 				<div class="row g-3 mb-2">

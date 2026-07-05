@@ -31,6 +31,7 @@ func ListCoinslotsHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 			items = append(items, views.CoinslotSettingsData{
 				ID:                 c.ID,
 				Name:               c.Name,
+				Alias:              c.Alias,
 				CoinPin:            c.CoinPin,
 				RelayPin:           c.RelayPin,
 				RelayActive:        c.RelayActive,
@@ -77,6 +78,13 @@ func SaveCoinslotSettingsHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 		if name := strings.TrimSpace(r.FormValue("name")); name != "" {
 			c.Name = name
 		}
+		alias := strings.TrimSpace(r.FormValue("alias"))
+		if len(alias) > 16 {
+			res.FlashMsg(w, r, api.Translate("error", "Alias must be 16 characters or fewer"), sdkapi.FlashMsgError)
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return
+		}
+		c.Alias = alias
 		c.CoinPin = atoiDefault(r.FormValue("coin_pin"), c.CoinPin)
 		c.RelayPin = atoiDefault(r.FormValue("relay_pin"), c.RelayPin)
 		c.RelayActive = atoiDefault(r.FormValue("relay_active"), c.RelayActive)
