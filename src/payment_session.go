@@ -16,6 +16,8 @@ const subscriberGrace = 15 * time.Second
 type RelayController interface {
 	OpenRelay(coinslotID string)
 	CloseRelay(coinslotID string)
+	// CoinslotName returns the coinslot's configured display name, or "" if unknown.
+	CoinslotName(coinslotID string) string
 }
 
 // CoinEvent is the SSE payload pushed to the insert-coin page on every coin.
@@ -120,9 +122,14 @@ func (m *PaymentSessionManager) Credit(coinslotID string, amount float64) {
 		return
 	}
 
+	paymentMethod := m.relays.CoinslotName(coinslotID)
+	if paymentMethod == "" {
+		paymentMethod = "Coinslot"
+	}
+
 	if err := s.purchase.CreatePayment(context.Background(), sdkapi.CreatePaymentParams{
-		Amount:       amount,
-		ProviderUUID: coinslotID,
+		Amount:        amount,
+		PaymentMethod: paymentMethod,
 	}); err != nil {
 		_ = m.api.Logger().Error("[wired-coinslot] failed to record coin payment: " + err.Error())
 		return

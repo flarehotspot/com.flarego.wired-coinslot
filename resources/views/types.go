@@ -11,6 +11,7 @@ import (
 type CoinslotSettingsData struct {
 	ID                 string
 	Name               string
+	Alias              string
 	CoinPin            int
 	RelayPin           int
 	RelayActive        int

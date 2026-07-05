@@ -152,6 +152,10 @@ type WiredCoinslot struct {
 	ID   string
 	Name string
 
+	// Alias is an optional, customer-facing display name (max 16 chars) shown as
+	// the payment method in the sales inventory. Falls back to "Coinslot" when unset.
+	Alias string
+
 	// Hardware configuration (physical BOARD pin numbers). The gpiod driver
 	// translates these to char-device line offsets internally, so the same
 	// physical-pin addressing is used for every board.
@@ -230,6 +234,15 @@ func (c *WiredCoinslot) GetID() string {
 
 func (c *WiredCoinslot) GetName() string {
 	return c.Name
+}
+
+// PaymentMethod returns the coinslot's customer-facing alias for display in the
+// sales inventory, falling back to a plain "Coinslot" label when no alias is set.
+func (c *WiredCoinslot) PaymentMethod() string {
+	if c.Alias != "" {
+		return c.Alias
+	}
+	return "Coinslot"
 }
 
 // TryUseBy atomically claims the coinslot for deviceID and reports whether the

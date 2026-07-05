@@ -87,6 +87,16 @@ func (m *Manager) CloseRelay(coinslotID string) {
 	}
 }
 
+// CoinslotName returns the coinslot's payment-method display label (alias, or
+// "Coinslot" if unset), or "" if the coinslot is unknown (e.g. deleted after
+// its runtime started).
+func (m *Manager) CoinslotName(coinslotID string) string {
+	if rt := m.runtime(coinslotID); rt != nil && rt.coinslot != nil {
+		return rt.coinslot.PaymentMethod()
+	}
+	return ""
+}
+
 // InjectPulse feeds a synthetic pulse into a coinslot's counter. Used by the
 // dev/mock route to exercise the full pipeline without real hardware.
 func (m *Manager) InjectPulse(coinslotID string) bool {

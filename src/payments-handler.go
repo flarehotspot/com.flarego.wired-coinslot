@@ -158,7 +158,7 @@ func DonePayingHandler(api sdkapi.IPluginApi) http.HandlerFunc {
 
 		// Determine the total accumulated payment for the webhook.
 		amount := purchase.Price()
-		if state, err := purchase.State(ctx); err == nil {
+		if state, err := purchase.GetPaymentData(ctx); err == nil {
 			amount = state.TotalPayment
 		}
 
