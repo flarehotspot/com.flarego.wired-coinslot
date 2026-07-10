@@ -6,7 +6,7 @@ import (
 )
 
 templ CoinslotSettingsPage(api sdkapi.IPluginApi, deviceModel string, boardModels []string, items []CoinslotSettingsData) {
-	<div id="wired-coinslots-settings" class="container-fluid">
+	<div id="wired-coinslots-settings">
 		<h3 class="mb-1">{ api.Translate("label", "Wired Coinslot") }</h3>
 		<p class="text-muted mb-4">{ api.Translate("info", "Configure coin acceptors wired directly to this device's GPIO pins.") }</p>
 		for _, item := range items {
