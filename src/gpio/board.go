@@ -19,8 +19,9 @@ type Board struct {
 	Header    map[int]string // physical header pin -> Allwinner port name; gpiod only
 }
 
-// boardRegistry is keyed by os_release.json device_model, which equals the
-// device folder name under go/builder/imagebuilder/devices/. The image variant
+// boardRegistry is keyed by device_model (IMachineApi.DeviceModel, decrypted from
+// core/product.json — see manager.go's StartManager), which equals the device
+// folder name under go/builder/imagebuilder/devices/. The image variant
 // (device_config) is irrelevant to GPIO and intentionally ignored.
 //
 // Adding a future char-device board is a single line: give it Driver "gpiod"
@@ -117,8 +118,8 @@ func DetectBoard(deviceModel string) Board {
 }
 
 // BoardModels returns the supported board model names (sorted) for the admin
-// override dropdown. These are the os_release device_model keys the registry
-// knows how to map to a GPIO driver.
+// override dropdown. These are the device_model keys the registry knows how to
+// map to a GPIO driver.
 func BoardModels() []string {
 	models := make([]string, 0, len(boardRegistry))
 	for model := range boardRegistry {

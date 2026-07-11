@@ -7,10 +7,7 @@ import (
 	sdkapi "sdk/api"
 
 	"com.flarego.wired-coinslot/src/gpio"
-	sdkutils "github.com/flarewifi/sdk-utils"
 )
-
-const osReleaseFile = "/etc/os_release.json"
 
 // coinslotRuntime bundles the live hardware objects for one coinslot.
 type coinslotRuntime struct {
@@ -46,10 +43,9 @@ func StartManager(api sdkapi.IPluginApi) *Manager {
 	}
 	m.sessions = NewPaymentSessionManager(api, m)
 
-	if release, err := sdkutils.ReadOsRelease(osReleaseFile); err == nil {
-		m.deviceModel = release.DeviceModel
-	} else {
-		_ = api.Logger().Error("[wired-coinslot] unable to read os_release for board detection: " + err.Error())
+	m.deviceModel = api.Machine().DeviceModel()
+	if m.deviceModel == "" {
+		_ = api.Logger().Error("[wired-coinslot] unable to determine device model for board detection")
 	}
 
 	managerMu.Lock()
@@ -70,7 +66,8 @@ func GetManager() *Manager {
 // Sessions exposes the payment session manager to the HTTP handlers.
 func (m *Manager) Sessions() *PaymentSessionManager { return m.sessions }
 
-// DeviceModel returns the detected os_release device_model (may be empty).
+// DeviceModel returns the detected device_model (may be empty), sourced from
+// IMachineApi.DeviceModel() at StartManager time.
 func (m *Manager) DeviceModel() string { return m.deviceModel }
 
 // OpenRelay energizes the coinslot's relay so coins are accepted.
