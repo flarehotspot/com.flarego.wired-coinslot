@@ -7,12 +7,22 @@ Wired Coinslot turns a machine's GPIO header into a coin-operated payment method
 - **Direct GPIO coin acceptance** — counts pulses from a coin acceptor on one GPIO pin and switches a relay on another to enable/disable the acceptor, with no external controller board required.
 - **Configurable pin wiring** — coin input pin, relay output pin, relay active level (HIGH/LOW), pull-up/pull-down bias, pulse edge (falling/rising/both), debounce time, and the idle window used to close out a coin's pulse burst are all adjustable from the admin settings page.
 - **Per-coinslot denominations** — map a coin's pulse count to its monetary value (e.g. 1 pulse = 1 peso, 5 pulses = 5 pesos), with denominations added, edited, or removed per coinslot.
-- **Multiple coinslots** — configure more than one coin acceptor on the same machine, each with its own name, wiring, and denomination table; a customer-facing payment method label ("alias") can be set per coinslot for the sales inventory and transaction records.
 - **Automatic board detection** — resolves the correct GPIO driver from the machine's device model, with a manual board override in settings if auto-detection needs correcting.
 - **Live payment progress over SSE** — the customer-facing insert-coin page updates in real time as coins are inserted, showing a "counting payment" indicator while a coin's pulses are still being resolved and the running total as each coin is credited.
 - **Idle countdown with auto-finalize** — an adjustable countdown (default 30 seconds) resets on every coin inserted; on expiry the page automatically completes the purchase with whatever amount was paid, or cancels if nothing was inserted.
 - **One payer at a time** — each coinslot can only be used by one client device at a time, so a coinslot already in use is not offered to another customer until the current payment finishes or times out.
 - **Registers as a payment option** — appears alongside a machine's other payment methods (e.g. vouchers, online payment) wherever customers choose how to pay.
+
+## Supported Devices
+
+| Board | GPIO Driver | Dependencies |
+|-------|-------------|--------------|
+| Orange Pi One (Allwinner H3) | `gpiod` (compiled in) | None |
+| Orange Pi PC (Allwinner H3) | `gpiod` (compiled in) | None |
+| Orange Pi Zero 3 (Allwinner H618) | `gpiod` (compiled in) | None |
+| Raspberry Pi 4 | Python `RPi.GPIO` | Installed automatically during plugin setup |
+
+Any other GPIO-capable board falls back to the Raspberry Pi driver, but only the boards listed above are verified.
 
 ## How It Works
 
