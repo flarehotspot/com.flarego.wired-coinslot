@@ -56,22 +56,30 @@ Stop() / OpenRelay() / CloseRelay()`. The factory `gpio.NewCoinAgent(cfg, logger
 
 | Board | Driver | Impl |
 |-------|--------|------|
-| `orangepi-one`, `orangepi-pc` (H3) | `gpiod` | `cdev_agent.go` (pure-Go, register `1c20800`) |
-| `orangepi-zero-3` (H618) | `gpiod` | `cdev_agent.go` (register `300b000`) |
-| `rpi-4`, unknown fallback | `rpi`/`opi` | `agent.go` (Python `coin_agent_script.go`) |
+| `orangepi-one`, `orangepi-pc` (H3) | `gpiod` (scheme `sunxi`) | `cdev_agent.go` (pure-Go, register `1c20800`) |
+| `orangepi-zero-3` (H618) | `gpiod` (scheme `sunxi`) | `cdev_agent.go` (register `300b000`) |
+| `rpi-4` (bcm2711) | `gpiod` (scheme `bcm`) | `cdev_agent.go` (chip label `pinctrl-bcm2711`) |
+| unknown fallback only | `rpi`/`opi` | `agent.go` (Python `coin_agent_script.go`) |
 
-### gpiod driver (`cdev_agent.go`) — the default for all Orange Pi boards
+### gpiod driver (`cdev_agent.go`) — the driver for EVERY registered board
 
 Pure-Go via `github.com/warthog618/go-gpiocdev` (no CGO, no Python, no pip, no network at install). Chosen
-because `OPi.GPIO` is a PyPI package whose pip-install **fails on an offline coin-vendo box**, and sysfs
-(which RPi/OPi.GPIO use) is removed on modern kernels.
+because the Python libs `OPi.GPIO`/`RPi.GPIO` drive the **sysfs GPIO interface, which is deprecated/removed
+on modern kernels** (Linux 6.1+) — there it stops firing edge events and renumbers pins — and `OPi.GPIO`'s
+pip-install additionally **fails on an offline coin-vendo box**. The `rpi-4` was the last board on the Python
+path; it moved to `gpiod` because its OpenWRT image (`bcm27xx/bcm2711`) now ships one of those kernels.
 
-- **Physical-pin addressing is preserved.** Config/UI use BOARD pin numbers (`CoinPin`/`RelayPin`, default
-  3/5). The driver converts internally: physical pin → Allwinner port name (`Board.Header` map) → line
-  offset (`sunxiOffset`, `offset = (bank-'A')*32 + pin`). The `Header` map is the board's fixed PCB layout
-  (safe to hardcode); the H3 map is derived from OPi.GPIO's `orangepi.pc.BOARD` so pins match the old driver.
-- **Chip is resolved by pinctrl-label substring** (`resolveChip` → `strings.Contains(label, "1c20800")`),
-  NOT by `/dev/gpiochipN` (unstable numbering) and NOT by line name (sunxi leaves line names unset).
+- **Physical-pin addressing is preserved for every board.** Config/UI use BOARD pin numbers
+  (`CoinPin`/`RelayPin`, default 3/5). The driver converts internally: physical pin → line name
+  (`Board.Header` map) → line offset, via the board's **`Scheme`**:
+  - `sunxi` — Allwinner port name (e.g. `PH5`) → `sunxiOffset` (`offset = (bank-'A')*32 + pin`). H3 map
+    derived from OPi.GPIO's `orangepi.pc.BOARD` so pins match the old driver.
+  - `bcm` — Raspberry Pi BCM name (e.g. `GPIO17`) → `bcmOffset`; on `pinctrl-bcm2711` the line **offset ==
+    BCM GPIO number**, so it just parses the trailing number. `rpiBcm2711Header` is the fixed J8 layout.
+  The `Header` map is the board's fixed PCB layout (safe to hardcode).
+- **Chip is resolved by pinctrl-label substring** (`resolveChip` → `strings.Contains`): `1c20800`/`300b000`
+  for the Orange Pis, `pinctrl-bcm2711` for the Pi 4. Matched NOT by `/dev/gpiochipN` (unstable numbering)
+  and NOT by kernel line name (these SoCs leave line names unset).
 
 ### 🚨 CRITICAL: gpiod coin detection POLLS, never edge-interrupts
 
@@ -84,6 +92,9 @@ So `pollCoin()` samples `line.Value()` every `coinPollInterval` (1ms) and detect
 (`isPulseEdge`, default falling) with a software debounce (`DebounceMs`). The relay path is unaffected
 (direct `SetValue`, no interrupts). **Do NOT "optimize" this back to `WithEventHandler`/`WithFallingEdge`
 for sunxi — it silently detects nothing.** Coin pulses are tens of ms wide, so 1ms polling is ample.
+
+On `bcm2711` (Pi 4) cdev edge events DO work, but the driver still polls: it's the single shared code path,
+and 1ms polling is more than fast enough for coin pulses. No need to special-case the Pi.
 
 ## Config (`src/wired-coinslot.go`)
 
@@ -99,13 +110,14 @@ dropdown from `gpio.BoardModels()`).
 - `system_packages` (plugin.json): `gpiod-tools` ONLY (the OpenWRT package name — NOT
   `libgpiod-tools`/`-utils`; v1.6.4, gives `gpiodetect`/`gpiomon`/`gpioget` for debugging).
 - `scripts/preinstall.sh` is board-aware and `GO_ENV`-gated (**`staging` is treated like `production`**;
-  dev/sandbox skip). It acts ONLY on boards with a `board.go` registry entry — an unknown/empty
-  `device_model` installs and compiles **nothing**. gpiod boards install nothing (GPIO is compiled in);
-  `rpi-4` pip-installs RPi.GPIO, with `python3-pip`/`python3-setuptools`/`gcc`/`python3-dev`
-  opkg-installed **on demand in that branch** (deliberately kept out of `system_packages` so gpiod boards
-  never install Python). Bump `version` in plugin.json so install hooks re-run on redeploy.
-- The Python fallback agent lives as a Go string in `coin_agent_script.go` (NOT `//go:embed` — the build
-  stages only `.go`). It logs once and stops on exit code 2 (persistent setup failure), not a retry loop.
+  dev/sandbox skip). It is now effectively a **no-op for every recognized board**: all of them (Orange Pis
+  **and** `rpi-4`) use the compiled-in gpiod driver, so nothing is installed. It's kept as the seam for any
+  future board that needs on-device setup. (Historical note: `rpi-4` used to pip-install RPi.GPIO here —
+  removed because RPi.GPIO drives the now-gone sysfs interface.) Bump `version` in plugin.json so install
+  hooks re-run on redeploy.
+- The Python fallback agent (`coin_agent_script.go`) is now reached **only** by the unknown-board `rpi`/`opi`
+  fallback, never by a registered board. It lives as a Go string (NOT `//go:embed` — the build stages only
+  `.go`) and logs once then stops on exit code 2 (persistent setup failure), not a retry loop.
 
 ## Dev vs prod
 
