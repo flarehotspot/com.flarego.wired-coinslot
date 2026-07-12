@@ -14,8 +14,9 @@ import (
 // the pure-Go go-gpiocdev library. Unlike the Python *Agent it needs no
 // subprocess, no interpreter, and no pip-installed library. The relay is a held
 // output line; the coin pin is read by a high-frequency polling goroutine. It is
-// the driver for sunxi boards (e.g. OrangePi One/Zero 3) whose modern kernels
-// expose GPIO only via /dev/gpiochipN, not the removed sysfs.
+// the driver for every registered board — the sunxi Orange Pis (One/Zero 3) and
+// the Raspberry Pi 4 (bcm2711) — whose modern kernels expose GPIO only via
+// /dev/gpiochipN, not the removed sysfs the Python libraries relied on.
 //
 // Coin detection POLLS rather than using edge interrupts. On Allwinner sunxi
 // the GPIO *value* is reliably readable via the char device, but cdev *edge
@@ -23,13 +24,16 @@ import (
 // never delivers) — verified on an OrangePi One (H3, kernel 5.15) where every
 // coin pulse was visible by polling the line value but produced zero edge
 // events. Coin-acceptor pulses are tens of milliseconds wide, so a ~1ms poll
-// with software debounce catches every one reliably and portably.
+// with software debounce catches every one reliably and portably (and works
+// unchanged on bcm2711, whose edge events are fine — polling is simply the
+// common path).
 //
 // Lines are addressed by (chip-label, line-offset). The chip is resolved by its
 // pinctrl label substring rather than its /dev name, because /dev/gpiochipN
-// ordering is not stable across kernels. The offset is computed from the
-// Allwinner port name via the sunxi formula because sunxi kernels leave
-// individual line names unset, so name-based lookup is unavailable.
+// ordering is not stable across kernels. The offset is computed from the board's
+// line name (Allwinner port name for sunxi, BCM name for bcm2711) via the
+// scheme-specific formula because these kernels leave individual line names
+// unset, so kernel name-based lookup is unavailable.
 type CdevAgent struct {
 	cfg    Config
 	logger Logger
@@ -200,14 +204,19 @@ func (a *CdevAgent) pollCoin(line *gpiocdev.Line) {
 	}
 }
 
-// resolvePin maps a physical header pin to its Allwinner port name (via the
-// board's Header map) and then to a char-device line offset.
+// resolvePin maps a physical header pin to its line name (via the board's Header
+// map) and then to a char-device line offset, per the board's Scheme.
 func (a *CdevAgent) resolvePin(pin int) (port string, offset int, err error) {
 	port, ok := a.cfg.Header[pin]
 	if !ok {
 		return "", 0, fmt.Errorf("physical pin %d is not a GPIO pin on this board", pin)
 	}
-	offset, err = sunxiOffset(port)
+	switch a.cfg.Scheme {
+	case "bcm":
+		offset, err = bcmOffset(port)
+	default: // "sunxi" (also the zero-value default for the existing sunxi boards)
+		offset, err = sunxiOffset(port)
+	}
 	if err != nil {
 		return port, 0, err
 	}
@@ -309,6 +318,21 @@ func sunxiOffset(port string) (int, error) {
 		return 0, fmt.Errorf("invalid pin number in %q", port)
 	}
 	return int(bank-'A')*32 + num, nil
+}
+
+// bcmOffset converts a Raspberry Pi BCM line name (e.g. "GPIO17") into the line
+// offset within its character-device chip. On the "pinctrl-bcm2711" controller
+// (gpiochip0) the line offset equals the BCM GPIO number, so the offset is just
+// the trailing number parsed out of the name. The header's numeric range is 0-57
+// (the 58 lines the chip exposes).
+func bcmOffset(port string) (int, error) {
+	p := strings.ToUpper(strings.TrimSpace(port))
+	p = strings.TrimPrefix(p, "GPIO")
+	num, err := strconv.Atoi(p)
+	if err != nil || num < 0 || num > 57 {
+		return 0, fmt.Errorf("invalid BCM line name %q (expected like GPIO17)", port)
+	}
+	return num, nil
 }
 
 // pullOption maps the configured bias to a go-gpiocdev request option,

@@ -44,10 +44,13 @@ type Config struct {
 	CoinPin  int `json:"coin_pin"`
 	RelayPin int `json:"relay_pin"`
 
-	// gpiod only: the char-device chip (matched by pinctrl label) and the
-	// board's physical-pin -> Allwinner port-name map used to resolve CoinPin/
-	// RelayPin to line offsets. Not serialized — gpiod never goes through Python.
-	ChipLabel string         `json:"chip_label"`
+	// gpiod only: the char-device chip (matched by pinctrl label), the board's
+	// physical-pin -> line-name map, and the scheme for turning a line name into
+	// a char-device offset ("sunxi" port name like "PH5", or "bcm" name like
+	// "GPIO17"). Used to resolve CoinPin/RelayPin to line offsets. Not serialized
+	// — gpiod never goes through Python.
+	ChipLabel string         `json:"-"`
+	Scheme    string         `json:"-"`
 	Header    map[int]string `json:"-"`
 
 	// Shared signal/relay settings.

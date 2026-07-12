@@ -141,8 +141,8 @@ func TestDetectBoard(t *testing.T) {
 		"orangepi-one":    {"gpiod", "1c20800"},
 		"orangepi-pc":     {"gpiod", "1c20800"},
 		"orangepi-zero-3": {"gpiod", "300b000"},
-		"rpi-4":           {"rpi", ""},
-		"unknown-device":  {"rpi", ""}, // unknown -> RPi.GPIO fallback
+		"rpi-4":           {"gpiod", "pinctrl-bcm2711"}, // bcm2711 char device, not RPi.GPIO
+		"unknown-device":  {"rpi", ""},                  // unknown -> RPi.GPIO fallback
 	}
 	for model, want := range cases {
 		got := gpio.DetectBoard(model)

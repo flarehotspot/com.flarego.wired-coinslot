@@ -148,8 +148,9 @@ func (m *Manager) startCoinslot(c *WiredCoinslot) {
 	}
 	if board.Driver == "gpiod" {
 		// Char-device driver: resolve the same physical pins to line offsets
-		// internally via the board's header map + chip (matched by label).
+		// internally via the board's header map + scheme + chip (matched by label).
 		cfg.ChipLabel = board.ChipLabel
+		cfg.Scheme = board.Scheme
 		cfg.Header = board.Header
 	} else {
 		// Python rpi/opi drivers use BOARD pin numbers directly; Library is what
