@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/a-h/templ v0.3.1020
-	github.com/flarewifi/sdk-utils v0.1.21
+	github.com/flarewifi/sdk-utils/v2 v2.0.0
 	github.com/goccy/go-json v0.10.6
 	github.com/warthog618/go-gpiocdev v0.9.1
 )

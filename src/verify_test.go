@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"com.flarego.wired-coinslot/src/gpio"
-	sdkutils "github.com/flarewifi/sdk-utils"
+	sdkutils "github.com/flarewifi/sdk-utils/v2"
 )
 
 func TestResolveAmount(t *testing.T) {

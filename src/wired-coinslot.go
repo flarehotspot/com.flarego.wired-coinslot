@@ -7,7 +7,7 @@ import (
 	sdkapi "sdk/api"
 	"sync"
 
-	sdkutils "github.com/flarewifi/sdk-utils"
+	sdkutils "github.com/flarewifi/sdk-utils/v2"
 	"github.com/goccy/go-json"
 )
 
