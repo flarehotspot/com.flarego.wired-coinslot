@@ -1,6 +1,7 @@
 {
   "error": {
     "A denomination with this pulse count already exists": "A denomination with this pulse count already exists",
+    "Alias must be 16 characters or fewer": "Alias must be 16 characters or fewer",
     "Amount must be a positive number": "Amount must be a positive number",
     "Cannot delete the last denomination": "Cannot delete the last denomination",
     "Coinslot not found": "Coinslot not found",
@@ -27,6 +28,7 @@
     "Internal resistor. Use Pull Up for open-collector outputs.": "Internal resistor. Use Pull Up for open-collector outputs.",
     "Map a coin's pulse count to its monetary value.": "Map a coin's pulse count to its monetary value.",
     "One coin emits a burst of pulses; the count is matched to the amount above.": "One coin emits a burst of pulses; the count is matched to the amount above.",
+    "Optional label (max 16 characters). Appears as the payment method in transactions and sales inventory. Falls back to \\": "Optional label (max 16 characters). Appears as the payment method in transactions and sales inventory. Falls back to \\",
     "Output level that switches the relay on.": "Output level that switches the relay on.",
     "Overrides hardware auto-detection — leave on Auto-detect unless detection is wrong.": "Overrides hardware auto-detection — leave on Auto-detect unless detection is wrong.",
     "Pin wiring and coin-pulse signal settings": "Pin wiring and coin-pulse signal settings",
@@ -62,6 +64,7 @@
     "Mock Insert Coin": "Mock Insert Coin",
     "Name": "Name",
     "Payment": "Payment",
+    "Payment Method": "Payment Method",
     "Payment Received": "Payment Received",
     "Payment Timeout (seconds)": "Payment Timeout (seconds)",
     "Pull Down": "Pull Down",
